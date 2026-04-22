@@ -389,24 +389,21 @@
         .sd-question-box {
             background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
             border-radius: 20px;
-            padding: 32px 24px;
+            padding: 24px;
             margin-bottom: 16px;
             text-align: center;
-            min-height: 160px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         .sd-question-text {
             color: white;
-            font-size: clamp(20px, 4vw, 32px);
+            font-size: clamp(18px, 3.5vw, 28px);
             font-weight: 700;
             line-height: 1.5;
+            margin-bottom: 16px;
         }
         .sd-question-text .q-difficulty {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 400;
-            color: #9CA3AF;
+            color: #FBBF24;
             margin-bottom: 8px;
             display: block;
         }
@@ -415,16 +412,15 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
-            margin-top: 20px;
             width: 100%;
         }
         .sd-option {
             background: rgba(255,255,255,0.1);
             border: 2px solid rgba(255,255,255,0.2);
             border-radius: 12px;
-            padding: 12px 16px;
+            padding: 14px 18px;
             color: white;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             text-align: left;
         }
@@ -1290,6 +1286,7 @@
             buzzerWinnerName: '',
             buzzerWinnerTime: 0,
             questionStartTime: 0,
+            questionScored: false,  // 防止答对/答错按钮重复点击
             autoAdvance: false,
             autoSeconds: 15,
             autoTimer: null,
@@ -1730,6 +1727,9 @@
 
         function sdScoreCurrent(result) {
             if (!state.buzzerWinnerId) return;
+            // 防止重复点击
+            if (state.questionScored) return;
+            state.questionScored = true;
             sdScorePlayer(state.buzzerWinnerId, result);
         }
 
@@ -1777,6 +1777,8 @@
             state.buzzerWinnerId = '';
             state.buzzerWinnerName = '';
             state.buzzerWinnerTime = 0;
+            state.snatchedPlayerId = '';
+            state.questionScored = false;
             state.questionStartTime = Date.now();
             document.getElementById('sdAnswerReveal').style.display = 'none';
             // 不在这里调用 sdUpdateQuestion，避免递归；由调用方控制刷新顺序
@@ -1785,17 +1787,20 @@
                     buzzer_locked: false,
                     buzzer_player_id: '',
                     buzzer_time: 0,
-                    buzzer_nickname: ''
+                    buzzer_nickname: '',
+                    snatched_player_id: ''
                 }).eq('id', state.room.id);
             }
         }
 
         async function sdNextQuestion() {
+            // 题目数量检查：最后一题才结束
             if (!state.room.questions || state.currentQuestion >= state.room.questions.length - 1) {
                 sdEndGame();
                 return;
             }
             state.currentQuestion++;
+            state.questionScored = false;  // 重置打分标记
             await sdResetBuzzer();
             sdUpdateHeader();
             sdUpdateQuestion();
@@ -1809,6 +1814,7 @@
         async function sdPrevQuestion() {
             if (state.currentQuestion <= 0) return;
             state.currentQuestion--;
+            state.questionScored = false;  // 重置打分标记
             await sdResetBuzzer();
             sdUpdateHeader();
             sdUpdateQuestion();
@@ -2417,10 +2423,11 @@
                     const changed = data.current_question !== state.currentQuestion;
                     state.currentQuestion = data.current_question;
                     if (changed) {
-                        // 切题时同步重置 buzzer 状态到云端
+                        // 切题时同步重置 buzzer 状态
                         state.buzzerLocked = false;
                         state.buzzerWinnerId = '';
                         state.buzzerWinnerName = '';
+                        state.questionScored = false;
                         state.questionStartTime = Date.now();
                         document.getElementById('sdAnswerReveal').style.display = 'none';
                         sdUpdateHeader();
@@ -2431,7 +2438,30 @@
                                 buzzer_locked: false,
                                 buzzer_player_id: '',
                                 buzzer_time: 0,
-                                buzzer_nickname: ''
+                                buzzer_nickname: '',
+                                snatched_player_id: ''
+                            }).eq('id', state.room.id);
+                        }
+                    }
+                }
+                // 监听 snatched_player_id 变化（玩家抢答时更新）
+                if (data.snatched_player_id !== undefined) {
+                    const prevSnatcher = state.snatchedPlayerId;
+                    state.snatchedPlayerId = data.snatched_player_id || '';
+                    // 如果有人抢答了，找到玩家信息
+                    if (state.snatchedPlayerId && state.snatchedPlayerId !== prevSnatcher) {
+                        const player = state.players.find(p => p.id === state.snatchedPlayerId);
+                        state.buzzerWinnerId = state.snatchedPlayerId;
+                        state.buzzerWinnerName = player?.nickname || data.snatched_nickname || '玩家';
+                        state.buzzerWinnerTime = data.snatched_at ? (Date.now() - new Date(data.snatched_at).getTime()) : 0;
+                        sdUpdateQuestion();
+                        sdUpdatePlayerGrid();
+                        // 更新云端的抢答信息
+                        if (isSupabaseConnected) {
+                            supabase.from('rooms').update({
+                                buzzer_player_id: state.buzzerWinnerId,
+                                buzzer_nickname: state.buzzerWinnerName,
+                                buzzer_time: state.buzzerWinnerTime
                             }).eq('id', state.room.id);
                         }
                     }
@@ -2440,8 +2470,8 @@
                     const changed = data.buzzer_locked !== state.buzzerLocked
                         || data.buzzer_player_id !== state.buzzerWinnerId;
                     state.buzzerLocked = data.buzzer_locked;
-                    state.buzzerWinnerId = data.buzzer_player_id || '';
-                    state.buzzerWinnerName = data.buzzer_nickname || '';
+                    state.buzzerWinnerId = data.buzzer_player_id || state.buzzerWinnerId;
+                    state.buzzerWinnerName = data.buzzer_nickname || state.buzzerWinnerName;
                     state.buzzerWinnerTime = data.buzzer_time || 0;
                     if (changed) { sdUpdateQuestion(); sdUpdatePlayerGrid(); }
                 }
