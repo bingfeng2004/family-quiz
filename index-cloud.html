@@ -344,6 +344,18 @@
             align-items: center;
             gap: 6px;
         }
+        .sd-room-code {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1E40AF;
+            margin-top: 4px;
+        }
+        .sd-room-code span {
+            background: #DBEAFE;
+            padding: 2px 12px;
+            border-radius: 8px;
+            letter-spacing: 3px;
+        }
         .sd-badge {
             display: inline-flex;
             align-items: center;
@@ -1004,6 +1016,7 @@
                 <div class="sd-header">
                     <div>
                         <div class="sd-title"><i class="bi bi-display"></i> 共享大屏</div>
+                        <div class="sd-room-code">房间号：<span id="sdRoomCode">------</span></div>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span id="sdModeTag" class="sd-badge sd-badge-shared">共享模式</span>
@@ -1563,6 +1576,8 @@
             showScreen('sharedDisplayScreen');
             state.gameState = 'shared_host';
             subscribeRoom();
+            // 显示房间号
+            document.getElementById('sdRoomCode').textContent = state.room.id || '------';
             sdUpdateHeader();
             sdUpdatePlayerGrid();
             sdUpdateQuestion();
@@ -1572,6 +1587,8 @@
             const themeName = THEMES.find(t => t.id === state.settings.theme)?.name || state.settings.theme;
             document.getElementById('sdThemeTag').textContent = themeName;
             document.getElementById('sdQuestionNum').textContent = `${state.currentQuestion + 1}/${state.settings.questionCount}`;
+            // 更新房间号显示
+            document.getElementById('sdRoomCode').textContent = state.room.id || '------';
             const tag = document.getElementById('sdModeTag');
             if (state.gameMode === 'shared') {
                 tag.textContent = '📺 共享模式';
