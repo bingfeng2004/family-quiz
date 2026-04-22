@@ -16,11 +16,20 @@
             --warning: #F59E0B;
             --info: #3B82F6;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
             min-height: 100vh;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        /* iOS 按钮优化 */
+        button, .bz-buzzer-btn, .sd-host-btn, .sd-big-btn {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
         }
         .container {
             max-width: 480px;
@@ -52,6 +61,15 @@
         .home-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
         .home-header p { opacity: 0.9; font-size: 14px; }
         .home-header .icon { font-size: 64px; margin-bottom: 16px; }
+        .home-header .version-badge {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 4px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+        }
         .home-buttons { padding: 30px; }
         .btn-primary-custom {
             width: 100%;
@@ -344,6 +362,16 @@
             align-items: center;
             gap: 6px;
         }
+        .sd-version-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: rgba(102, 126, 234, 0.15);
+            color: var(--primary);
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        }
         .sd-room-code {
             font-size: 18px;
             font-weight: 700;
@@ -543,6 +571,107 @@
             animation: pulse 1s infinite;
         }
 
+        /* 房主等待界面 */
+        .sd-waiting-area {
+            text-align: center;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .sd-waiting-icon { font-size: 64px; margin-bottom: 16px; }
+        .sd-waiting-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1F2937;
+            margin-bottom: 8px;
+        }
+        .sd-waiting-subtitle {
+            font-size: 14px;
+            color: #6B7280;
+            margin-bottom: 16px;
+        }
+        .sd-join-code {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 8px;
+            padding: 16px;
+            background: #F3F4F6;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        .sd-player-count {
+            font-size: 16px;
+            color: #6B7280;
+        }
+        .sd-waiting-players {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .sd-waiting-players-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #6B7280;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sd-waiting-player-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: #F9FAFB;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .sd-waiting-player-item:last-child { margin-bottom: 0; }
+        .sd-waiting-player-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-right: 12px;
+        }
+        .sd-waiting-player-name {
+            font-weight: 600;
+            color: #1F2937;
+            flex: 1;
+        }
+        .sd-waiting-player-status {
+            font-size: 12px;
+            color: var(--success);
+        }
+        .sd-start-game-bar {
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+        }
+        .sd-big-start {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .sd-big-start:active { transform: scale(0.98); }
+
         /* 玩家得分列表 */
         .sd-players-grid {
             display: grid;
@@ -559,8 +688,10 @@
             cursor: pointer;
             transition: all 0.2s;
             position: relative;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
-        .sd-player-card:hover { border-color: var(--primary); }
+        .sd-player-card:hover, .sd-player-card:active { border-color: var(--primary); transform: scale(0.98); }
         .sd-player-card.buzzing {
             border-color: var(--danger);
             background: #FEF2F2;
@@ -851,6 +982,7 @@
                     <div class="icon">🏠</div>
                     <h1>家庭知识竞答</h1>
                     <p>全家一起玩，知识趣味学</p>
+                    <span class="version-badge" id="homeVersionBadge">v2.0.0</span>
                 </div>
                 <div class="home-buttons">
                     <div class="help-tip" style="background:#EFF6FF;border-color:#BFDBFE;margin-bottom:16px;">
@@ -1027,13 +1159,52 @@
             </div>
 
             <!-- ============================================= -->
+            <!-- 共享模式房主等待界面                            -->
+            <!-- ============================================= -->
+            <div id="sharedHostWaitScreen" class="screen shared-display">
+                <!-- 顶部信息栏 -->
+                <div class="sd-header">
+                    <div>
+                        <div class="sd-title"><i class="bi bi-display"></i> 共享大屏 <span class="sd-version-badge" id="sdVersionBadge2">v2.0.0</span></div>
+                        <div class="sd-room-code">房间号：<span id="sdRoomCode2">------</span></div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="sd-badge sd-badge-shared">📺 共享模式</span>
+                        <span class="sd-theme-tag" id="sdThemeTag2">科学</span>
+                    </div>
+                </div>
+
+                <!-- 等待玩家加入区域 -->
+                <div class="sd-waiting-area">
+                    <div class="sd-waiting-icon">🎯</div>
+                    <div class="sd-waiting-title">等待玩家加入</div>
+                    <div class="sd-waiting-subtitle">请告知其他玩家房间号，扫码加入</div>
+                    <div class="sd-join-code" id="sdJoinCode">------</div>
+                    <div class="sd-player-count" id="sdPlayerCount">已加入：0 人</div>
+                </div>
+
+                <!-- 玩家列表（不含房主） -->
+                <div class="sd-waiting-players">
+                    <div class="sd-waiting-players-title">已加入玩家</div>
+                    <div id="sdWaitingPlayersList"></div>
+                </div>
+
+                <!-- 开始游戏按钮 -->
+                <div class="sd-start-game-bar">
+                    <button class="sd-big-btn sd-big-start" id="sdStartGameBtn" onclick="sdStartGame()">
+                        🚀 开始游戏
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================= -->
             <!-- 共享大屏（主持人端）                            -->
             <!-- ============================================= -->
             <div id="sharedDisplayScreen" class="screen shared-display">
                 <!-- 顶部信息栏 -->
                 <div class="sd-header">
                     <div>
-                        <div class="sd-title"><i class="bi bi-display"></i> 共享大屏</div>
+                        <div class="sd-title"><i class="bi bi-display"></i> 共享大屏 <span class="sd-version-badge" id="sdVersionBadge">v2.0.0</span></div>
                         <div class="sd-room-code">房间号：<span id="sdRoomCode">------</span></div>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
@@ -1149,8 +1320,17 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
+        const APP_VERSION = '2026.04.22.2';
 
         let isSupabaseConnected = false;
+
+        // 初始化版本号显示
+        function initVersionDisplay() {
+            const homeBadge = document.getElementById('homeVersionBadge');
+            const sdBadge = document.getElementById('sdVersionBadge');
+            if (homeBadge) homeBadge.textContent = 'v' + APP_VERSION;
+            if (sdBadge) sdBadge.textContent = 'v' + APP_VERSION;
+        }
 
         // 尝试初始化 Supabase
         async function initSupabase() {
@@ -1315,6 +1495,7 @@
             initRadioGroup('questionCountGroup', 'questionCount');
             initRadioGroup('answerTimeGroup', 'answerTime');
             selectMode('shared');
+            initVersionDisplay();
         }
 
         // 检查上次房间，看是否可以恢复
@@ -1430,7 +1611,7 @@
                     startPolling();
                     
                     if (state.gameMode === 'shared') {
-                        showSharedDisplay();
+                        showSharedHostWait();  // 共享模式：先显示等待界面
                     } else {
                         showWaiting();
                     }
@@ -1598,6 +1779,74 @@
         }
 
         // ==================== 共享大屏（主持人） ====================
+        function showSharedHostWait() {
+            showScreen('sharedHostWaitScreen');
+            state.gameState = 'shared_host_wait';
+            subscribeRoom();
+            // 更新等待界面信息
+            document.getElementById('sdRoomCode2').textContent = state.room.id || '------';
+            document.getElementById('sdJoinCode').textContent = state.room.id || '------';
+            const themeName = THEMES.find(t => t.id === state.settings.theme)?.name || state.settings.theme;
+            document.getElementById('sdThemeTag2').textContent = themeName;
+            document.getElementById('sdVersionBadge2').textContent = 'v' + APP_VERSION;
+            sdUpdateWaitingPlayers();
+        }
+
+        function sdUpdateWaitingPlayers() {
+            const hostId = state.room.hostId || state.room.host_id;
+            const players = state.players.filter(p => p.id !== hostId);
+            const playerList = document.getElementById('sdWaitingPlayersList');
+            const playerCount = document.getElementById('sdPlayerCount');
+
+            if (playerCount) {
+                playerCount.textContent = `已加入：${players.length} 人`;
+            }
+
+            if (playerList) {
+                if (players.length === 0) {
+                    playerList.innerHTML = '<div style="text-align:center;color:#9CA3AF;padding:16px;">暂无玩家加入</div>';
+                } else {
+                    playerList.innerHTML = players.map(p => `
+                        <div class="sd-waiting-player-item">
+                            <div class="sd-waiting-player-avatar">${p.nickname.charAt(0)}</div>
+                            <div class="sd-waiting-player-name">${p.nickname}</div>
+                            <div class="sd-waiting-player-status">✓ 已连接</div>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        // 开始游戏
+        async function sdStartGame() {
+            if (!state.room.questions || state.room.questions.length === 0) {
+                showToast('题目加载中，请稍候...');
+                return;
+            }
+            // 重置游戏状态
+            state.currentQuestion = 0;
+            state.questionScored = false;
+            state.buzzerLocked = false;
+            state.buzzerWinnerId = '';
+            state.buzzerWinnerName = '';
+            state.questionStartTime = 0;
+            state.snatchedPlayerId = '';
+
+            // 更新云端房间状态
+            if (isSupabaseConnected) {
+                await supabase.from('rooms').update({
+                    status: 'playing',
+                    current_question: 0,
+                    buzzer_locked: false,
+                    buzzer_player_id: '',
+                    snatched_player_id: ''
+                }).eq('id', state.room.id);
+            }
+
+            // 切换到题目显示界面
+            showSharedDisplay();
+        }
+
         function showSharedDisplay() {
             showScreen('sharedDisplayScreen');
             state.gameState = 'shared_host';
@@ -1628,7 +1877,13 @@
         function sdUpdatePlayerGrid() {
             const grid = document.getElementById('sdPlayersGrid');
             const hostId = state.room.hostId || state.room.host_id;
-            grid.innerHTML = state.players.map(p => {
+            // 过滤掉房主，只显示参与抢答的玩家
+            const players = state.players.filter(p => p.id !== hostId);
+            if (players.length === 0) {
+                grid.innerHTML = '<div style="text-align:center;color:#9CA3AF;padding:20px;">等待玩家加入...</div>';
+                return;
+            }
+            grid.innerHTML = players.map(p => {
                 const isWinner = p.id === state.buzzerWinnerId;
                 const isBuzzing = p.id === state.buzzerWinnerId && !state.buzzerLocked;
                 const scoreClass = p.score < 0 ? 'negative' : '';
@@ -1636,7 +1891,7 @@
                     onclick="sdTogglePlayer('${p.id}')" title="点击打分">
                     ${isBuzzing ? '<div class="sd-player-buzzed-tag">🔔 抢到!</div>' : ''}
                     ${isWinner && state.buzzerLocked ? '<div class="sd-player-correct-tag">✓</div>' : ''}
-                    <div class="sd-player-name">${p.nickname}${p.id === hostId ? ' 👑' : ''}</div>
+                    <div class="sd-player-name">${p.nickname}</div>
                     <div class="sd-player-score ${scoreClass}">${p.score}</div>
                 </div>`;
             }).join('');
@@ -1902,7 +2157,8 @@
             const btn = document.getElementById('bzBuzzerBtn');
             const sub = document.getElementById('bzBtnSub');
 
-            if (state.gameState !== 'buzzer') {
+            // 未开始游戏时禁用抢答
+            if (state.gameState !== 'buzzer' || state.room.status !== 'playing') {
                 status.className = 'bz-status idle';
                 status.textContent = '等待主持人开始...';
                 btn.className = 'bz-buzzer-btn locked';
@@ -1944,6 +2200,11 @@
         }
 
         async function bzBuzzIn() {
+            // 检查游戏是否已开始
+            if (state.room.status !== 'playing') {
+                showToast('等待主持人开始游戏...');
+                return;
+            }
             if (state.buzzerLocked || state.buzzerWinnerId) {
                 showToast('已被其他选手抢走！');
                 return;
@@ -2140,7 +2401,7 @@
 
             // 根据模式进入不同界面
             if (state.gameMode === 'shared') {
-                showSharedDisplay();
+                showSharedHostWait();  // 共享模式：先显示等待界面
             } else {
                 showWaiting();
             }
@@ -2251,7 +2512,7 @@
             // 根据模式和身份进入不同界面
             if (state.gameMode === 'shared') {
                 if (isHost) {
-                    showSharedDisplay();
+                    showSharedHostWait();  // 共享模式：先显示等待界面
                 } else {
                     showBuzzerScreen();
                 }
@@ -2409,6 +2670,8 @@
                     updateLeaderboard();
                     // 同步共享大屏玩家网格
                     if (state.gameState === 'shared_host') sdUpdatePlayerGrid();
+                    // 同步等待界面玩家列表
+                    if (state.gameState === 'shared_host_wait') sdUpdateWaitingPlayers();
                     if (state.gameState === 'buzzer') { bzUpdateScore(); bzUpdateLeaderboard(); }
                 }
             } catch (e) {
@@ -2417,6 +2680,14 @@
         }
 
         async function handleRoomUpdate(data) {
+            // === 共享模式主持人端（等待阶段）===
+            if (state.gameState === 'shared_host_wait') {
+                // 玩家加入时刷新等待列表
+                if (data.room_players !== undefined || data.players !== undefined) {
+                    sdUpdateWaitingPlayers();
+                }
+            }
+
             // === 共享模式主持人端 ===
             if (state.gameState === 'shared_host') {
                 if (data.current_question !== undefined) {
@@ -2509,6 +2780,12 @@
                     showToast('游戏已结束！');
                     showScreen('resultScreen');
                     showFinalResult(state.players.sort((a, b) => b.score - a.score));
+                }
+                // 游戏开始时刷新抢答状态
+                if (data.status === 'playing' && state.room.status !== 'playing') {
+                    state.room.status = 'playing';
+                    state.questionStartTime = Date.now();
+                    bzUpdateStatus();
                 }
                 return;
             }
