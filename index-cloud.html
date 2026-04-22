@@ -410,6 +410,28 @@
             margin-bottom: 8px;
             display: block;
         }
+        /* 选项显示区 */
+        .sd-options-box {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+            width: 100%;
+        }
+        .sd-option {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: left;
+        }
+        .sd-option span {
+            font-weight: 400;
+            margin-left: 8px;
+        }
 
         /* 抢答状态区 */
         .sd-buzzer-panel {
@@ -1031,6 +1053,13 @@
                         <span class="q-difficulty" id="sdDifficultyTag"></span>
                         主持人点击「下一题」开始
                     </div>
+                    <!-- 选项显示区域 -->
+                    <div id="sdOptionsBox" class="sd-options-box" style="display:none;">
+                        <div class="sd-option" id="sdOptionA">A: <span></span></div>
+                        <div class="sd-option" id="sdOptionB">B: <span></span></div>
+                        <div class="sd-option" id="sdOptionC">C: <span></span></div>
+                        <div class="sd-option" id="sdOptionD">D: <span></span></div>
+                    </div>
                 </div>
 
                 <!-- 抢答状态 -->
@@ -1617,23 +1646,67 @@
         }
 
         function sdUpdateQuestion() {
+            // 安全检查：如果元素不存在，直接返回
+            if (!document.getElementById('sdQuestionText')) return;
+            
             const total = state.settings.questionCount;
-            document.getElementById('sdQuestionNum').textContent = `${state.currentQuestion + 1}/${total}`;
+            const elNum = document.getElementById('sdQuestionNum');
+            if (elNum) elNum.textContent = `${state.currentQuestion + 1}/${total}`;
 
             if (!state.room.questions || state.room.questions.length === 0 || state.currentQuestion >= state.room.questions.length) {
-                document.getElementById('sdQuestionText').innerHTML = '<span class="q-difficulty"></span>请等待玩家加入...';
-                document.getElementById('sdBuzzerIdle').style.display = '';
-                document.getElementById('sdBuzzerWinner').style.display = 'none';
-                document.getElementById('sdAnswerReveal').style.display = 'none';
-                document.getElementById('sdNextBtn').textContent = '▶ 下一题';
+                document.getElementById('sdQuestionText').innerHTML = '主持人点击「下一题」开始';
+                const elOptions = document.getElementById('sdOptionsBox');
+                if (elOptions) elOptions.style.display = 'none';
+                const elIdle = document.getElementById('sdBuzzerIdle');
+                const elWinner = document.getElementById('sdBuzzerWinner');
+                const elAnswer = document.getElementById('sdAnswerReveal');
+                const elNextBtn = document.getElementById('sdNextBtn');
+                if (elIdle) elIdle.style.display = '';
+                if (elWinner) elWinner.style.display = 'none';
+                if (elAnswer) elAnswer.style.display = 'none';
+                if (elNextBtn) elNextBtn.textContent = '▶ 下一题';
                 return;
             }
 
+
             const q = state.room.questions[state.currentQuestion];
             const diffLabel = { easy: '简单', medium: '中等', hard: '困难' }[q.difficulty] || '';
-            document.getElementById('sdDifficultyTag').textContent = diffLabel;
+            const elDiff = document.getElementById('sdDifficultyTag');
+            if (elDiff) elDiff.textContent = diffLabel;
             document.getElementById('sdQuestionText').innerHTML =
                 `<span class="q-difficulty">${diffLabel}</span>${q.content}`;
+
+            // 显示选项
+            const elOptions = document.getElementById('sdOptionsBox');
+            if (elOptions) {
+                if (q.options) {
+                    elOptions.style.display = 'grid';
+                    // 兼容两种格式：数组格式和对象格式
+                    if (Array.isArray(q.options)) {
+                        ['A', 'B', 'C', 'D'].forEach((key, i) => {
+                            const el = document.getElementById('sdOption' + key);
+                            if (el && q.options[i]) {
+                                el.querySelector('span').textContent = q.options[i].value || '';
+                                el.style.display = '';
+                            } else if (el) {
+                                el.style.display = 'none';
+                            }
+                        });
+                    } else if (typeof q.options === 'object') {
+                        ['A', 'B', 'C', 'D'].forEach(key => {
+                            const el = document.getElementById('sdOption' + key);
+                            if (el && q.options[key]) {
+                                el.querySelector('span').textContent = q.options[key];
+                                el.style.display = '';
+                            } else if (el) {
+                                el.style.display = 'none';
+                            }
+                        });
+                    }
+                } else {
+                    elOptions.style.display = 'none';
+                }
+            }
 
             // 更新主持人按钮文字
             const isLast = state.currentQuestion >= state.room.questions.length - 1;
