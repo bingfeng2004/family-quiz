@@ -42,11 +42,6 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.2);
             overflow: hidden;
-            animation: slideUp 0.5s ease;
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
         }
         .screen { display: none; padding: 24px; }
         .screen.active { display: block; }
@@ -80,12 +75,12 @@
             font-weight: 600;
             margin-bottom: 12px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
         }
         .btn-create { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; }
-        .btn-create:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4); }
+        .btn-create:active { transform: scale(0.98); }
         .btn-join { background: white; color: var(--primary); border: 2px solid var(--primary); }
-        .btn-join:hover { background: rgba(102, 126, 234, 0.1); }
+        .btn-join:active { background: rgba(102, 126, 234, 0.1); transform: scale(0.98); }
 
         /* 表单 */
         .form-group { margin-bottom: 20px; }
@@ -96,7 +91,7 @@
             border: 2px solid #E5E7EB;
             border-radius: 12px;
             font-size: 16px;
-            transition: all 0.3s;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
         .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
 
@@ -108,9 +103,9 @@
             border: 2px solid #E5E7EB;
             border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: border-color 0.15s, background-color 0.15s;
         }
-        .theme-item:hover { border-color: var(--primary); }
+        .theme-item:active { transform: scale(0.95); }
         .theme-item.active { border-color: var(--primary); background: rgba(102, 126, 234, 0.1); }
         .theme-item .icon { font-size: 32px; margin-bottom: 8px; }
         .theme-item .name { font-size: 13px; color: #374151; font-weight: 500; }
@@ -123,9 +118,9 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            transition: all 0.3s;
+            transition: border-color 0.15s, background-color 0.15s;
         }
-        .radio-item:hover { border-color: var(--primary); }
+        .radio-item:active { transform: scale(0.95); }
         .radio-item.active { border-color: var(--primary); background: var(--primary); color: white; }
 
         /* 房间信息 */
@@ -177,10 +172,9 @@
         }
         .question-counter { font-size: 16px; font-weight: 600; color: var(--primary); }
         .timer { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; }
-        .timer.warning { color: var(--danger); animation: pulse 1s infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .timer.warning { color: var(--danger); }
         .progress-bar { height: 6px; background: #E5E7EB; border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
-        .progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 3px; transition: width 1s linear; }
+        .progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 3px; }
         .question-content { font-size: 20px; font-weight: 600; color: #1F2937; line-height: 1.6; margin-bottom: 24px; text-align: center; }
         .options-list { margin-bottom: 24px; }
         .option-item {
@@ -222,10 +216,14 @@
             color: white;
             cursor: pointer;
             background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
-            animation: glow 2s infinite;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+            transition: transform 0.05s, box-shadow 0.1s;
         }
-        @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); } 50% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.8); } }
-        .snatch-btn:disabled { background: #9CA3AF; animation: none; box-shadow: none; }
+        .snatch-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+        }
+        .snatch-btn:disabled { background: #9CA3AF; box-shadow: none; }
         .answer-btn {
             width: 100%;
             padding: 16px;
@@ -236,7 +234,9 @@
             color: white;
             cursor: pointer;
             background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            transition: transform 0.05s;
         }
+        .answer-btn:active { transform: scale(0.98); }
         .answer-btn:disabled { background: #9CA3AF; }
         .leaderboard { background: #F9FAFB; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
         .leaderboard-title { font-size: 14px; font-weight: 600; color: #6B7280; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
@@ -473,11 +473,7 @@
             padding: 20px;
         }
         .sd-buzzer-winner {
-            animation: winnerPop 0.4s ease;
-        }
-        @keyframes winnerPop {
-            0% { transform: scale(0.8); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+            /* 移除动画以提升性能 */
         }
         .sd-winner-name {
             font-size: 28px;
@@ -508,7 +504,8 @@
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         .sd-host-btn:active { transform: scale(0.96); }
         .sd-btn-reset { background: #F3F4F6; color: #374151; }
@@ -686,20 +683,14 @@
             padding: 12px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
             position: relative;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
-        .sd-player-card:hover, .sd-player-card:active { border-color: var(--primary); transform: scale(0.98); }
+        .sd-player-card:active { border-color: var(--primary); transform: scale(0.98); }
         .sd-player-card.buzzing {
             border-color: var(--danger);
             background: #FEF2F2;
-            animation: buzzPulse 0.6s infinite;
-        }
-        @keyframes buzzPulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
-            50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
         }
         .sd-player-card.winner {
             border-color: var(--success);
@@ -755,7 +746,8 @@
             font-size: 15px;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         .sd-big-btn:active { transform: scale(0.96); }
         .sd-big-next { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
@@ -822,7 +814,6 @@
             font-size: 22px;
             font-weight: 800;
             cursor: pointer;
-            transition: all 0.15s;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -831,15 +822,16 @@
             user-select: none;
             -webkit-user-select: none;
             position: relative;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         .bz-buzzer-btn.ready {
             background: linear-gradient(135deg, #EF4444 0%, #DC2626 50%, #B91C1C 100%);
             color: white;
             box-shadow: 0 8px 32px rgba(220, 38, 38, 0.5), inset 0 -4px 0 rgba(0,0,0,0.2);
         }
-        .bz-buzzer-btn.ready:active {
+        .bz-buzzer-btn:active {
             transform: scale(0.95);
-            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.4);
         }
         .bz-buzzer-btn.locked {
             background: #4B5563;
@@ -851,11 +843,6 @@
             background: linear-gradient(135deg, #10B981 0%, #059669 100%);
             color: white;
             box-shadow: 0 8px 32px rgba(16, 185, 129, 0.5);
-            animation: winnerGlow 1s infinite;
-        }
-        @keyframes winnerGlow {
-            0%, 100% { box-shadow: 0 0 20px rgba(16,185,129,0.5); }
-            50% { box-shadow: 0 0 40px rgba(16,185,129,0.8); }
         }
         .bz-buzzer-btn .bz-icon { font-size: 40px; }
         .bz-buzzer-btn .bz-label { font-size: 16px; }
@@ -1320,7 +1307,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.22.2';
+        const APP_VERSION = '2026.04.22.3';
 
         let isSupabaseConnected = false;
 
