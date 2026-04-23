@@ -110,6 +110,25 @@
         .theme-item .icon { font-size: 32px; margin-bottom: 8px; }
         .theme-item .name { font-size: 13px; color: #374151; font-weight: 500; }
 
+        /* 难度选择 */
+        .difficulty-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .difficulty-item {
+            text-align: center;
+            padding: 14px 8px;
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.1s;
+            background: #fff;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .difficulty-item:active { transform: scale(0.93); }
+        .difficulty-item .diff-icon { font-size: 26px; margin-bottom: 4px; }
+        .difficulty-item .name { font-size: 14px; font-weight: 700; }
+        .difficulty-item .desc { font-size: 10px; color: #9CA3AF; margin-top: 2px; }
+        .difficulty-item .score { font-size: 11px; color: #6B7280; margin-top: 3px; font-weight: 500; }
+
         /* 单选按钮 */
         .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
         .radio-item {
@@ -1020,6 +1039,10 @@
                     <div class="theme-grid" id="themeGrid"></div>
                 </div>
                 <div class="form-group">
+                    <label>选择难度</label>
+                    <div class="difficulty-grid" id="difficultyGrid"></div>
+                </div>
+                <div class="form-group">
                     <label>题目数量</label>
                     <div class="radio-group" id="questionCountGroup">
                         <div class="radio-item active" data-value="5">5题</div>
@@ -1197,6 +1220,7 @@
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span id="sdModeTag" class="sd-badge sd-badge-shared">共享模式</span>
                         <span class="sd-theme-tag" id="sdThemeTag">科学</span>
+                        <span class="sd-theme-tag" id="sdDiffTag" style="background:#22C55E18;color:#22C55E;">简单</span>
                         <span class="sd-question-num" id="sdQuestionNum">1/10</span>
                     </div>
                 </div>
@@ -1307,7 +1331,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.22.3';
+        const APP_VERSION = '2026.04.23.1';
 
         let isSupabaseConnected = false;
 
@@ -1348,12 +1372,22 @@
 
         // ==================== 数据定义 ====================
         const THEMES = [
-            { id: 'science', name: '科学', icon: '🔬' },
-            { id: 'history', name: '历史', icon: '📜' },
-            { id: 'geo', name: '地理', icon: '🌍' },
-            { id: 'animal', name: '动物', icon: '🐾' },
-            { id: 'plant', name: '植物', icon: '🌳' },
-            { id: 'space', name: '天文', icon: '🚀' }
+            { id: 'science', name: '科学', icon: '🔬', color: '#3B82F6' },
+            { id: 'history', name: '历史', icon: '📜', color: '#8B5CF6' },
+            { id: 'geography', name: '地理', icon: '🌍', color: '#10B981' },
+            { id: 'animal', name: '动物', icon: '🦁', color: '#F59E0B' },
+            { id: 'plant', name: '植物', icon: '🌲', color: '#22C55E' },
+            { id: 'space', name: '天文', icon: '🚀', color: '#6366F1' },
+            { id: 'music', name: '音乐', icon: '🎵', color: '#EC4899' },
+            { id: 'language', name: '语文', icon: '📝', color: '#14B8A6' },
+            { id: 'mixed', name: '综合', icon: '🎯', color: '#EF4444' }
+        ];
+        
+        // 难度定义
+        const DIFFICULTIES = [
+            { id: 'easy',   name: '简单', icon: '🌱', color: '#22C55E', score: 10, desc: '基础知识' },
+            { id: 'medium', name: '中等', icon: '🔥', color: '#F59E0B', score: 20, desc: '有点挑战' },
+            { id: 'hard',   name: '困难', icon: '💎', color: '#EF4444', score: 30, desc: '烧脑进阶' }
         ];
 
         // 内置题目（云端同步时会覆盖）
@@ -1436,7 +1470,7 @@
             players: [],
             currentQuestion: 0,
             questions: [],
-            settings: { theme: 'science', questionCount: 10, answerTime: 15 },
+            settings: { theme: 'science', difficulty: 'easy', questionCount: 10, answerTime: 15 },
             gameState: 'idle',
             hasSnatched: false,
             snatchedPlayerId: '',
@@ -1479,6 +1513,7 @@
                 showToast('⚠️ 运行在离线模式（内置题库）');
             }
             initThemeGrid();
+            initDifficultyGrid();
             initRadioGroup('questionCountGroup', 'questionCount');
             initRadioGroup('answerTimeGroup', 'answerTime');
             selectMode('shared');
@@ -1849,6 +1884,14 @@
             const themeName = THEMES.find(t => t.id === state.settings.theme)?.name || state.settings.theme;
             document.getElementById('sdThemeTag').textContent = themeName;
             document.getElementById('sdQuestionNum').textContent = `${state.currentQuestion + 1}/${state.settings.questionCount}`;
+            // 更新难度标签
+            const diff = DIFFICULTIES.find(d => d.id === state.settings.difficulty);
+            const diffTag = document.getElementById('sdDiffTag');
+            if (diff && diffTag) {
+                diffTag.textContent = diff.icon + ' ' + diff.name;
+                diffTag.style.color = diff.color;
+                diffTag.style.background = diff.color + '18';
+            }
             // 更新房间号显示
             document.getElementById('sdRoomCode').textContent = state.room.id || '------';
             const tag = document.getElementById('sdModeTag');
@@ -2293,6 +2336,44 @@
             });
         }
 
+        // 难度选择
+        function initDifficultyGrid() {
+            const grid = document.getElementById('difficultyGrid');
+            grid.innerHTML = DIFFICULTIES.map(d => {
+                const isActive = d.id === state.settings.difficulty;
+                const activeStyle = isActive
+                    ? `border-color:${d.color}; background:${d.color}18;`
+                    : '';
+                return `
+                <div class="difficulty-item ${isActive ? 'active' : ''}" 
+                     style="${activeStyle}"
+                     onclick="selectDifficulty('${d.id}')">
+                    <div class="diff-icon">${d.icon}</div>
+                    <div class="name" style="color:${d.color}">${d.name}</div>
+                    <div class="desc">${d.desc}</div>
+                    <div class="score">+${d.score}分/题</div>
+                </div>`;
+            }).join('');
+        }
+
+        function selectDifficulty(diffId) {
+            state.settings.difficulty = diffId;
+            document.querySelectorAll('.difficulty-item').forEach((item, i) => {
+                const d = DIFFICULTIES[i];
+                const isActive = d.id === diffId;
+                item.classList.toggle('active', isActive);
+                if (isActive) {
+                    item.style.borderColor = d.color;
+                    item.style.background = d.color + '18';
+                    item.querySelector('.name').style.color = d.color;
+                } else {
+                    item.style.borderColor = '#E5E7EB';
+                    item.style.background = '#fff';
+                    item.querySelector('.name').style.color = d.color; // 保留颜色
+                }
+            });
+        }
+
         function initRadioGroup(groupId, key) {
             document.querySelectorAll(`#${groupId} .radio-item`).forEach(item => {
                 item.addEventListener('click', () => {
@@ -2318,10 +2399,12 @@
             state.gameState = 'waiting';
             console.log('[DEBUG] nickname set:', nickname, 'userId:', state.userId, 'isSupabaseConnected:', isSupabaseConnected);
 
-            // 准备题目（优先云端）
+            // 准备题目（优先云端，按主题和难度筛选）
             let selected = [];
+            const diffId = state.settings.difficulty;
             if (isSupabaseConnected) {
-                const { data: cloudQs } = await supabase.from('questions').select('*').eq('theme_id', state.settings.theme);
+                const { data: cloudQs } = await supabase.from('questions')
+                    .select('*').eq('theme_id', state.settings.theme).eq('difficulty', diffId);
                 if (cloudQs && cloudQs.length > 0) {
                     const shuffled = [...cloudQs].sort(() => Math.random() - 0.5);
                     selected = shuffled.slice(0, state.settings.questionCount).map(q => ({
@@ -2332,7 +2415,7 @@
                 }
             }
             if (selected.length === 0) {
-                const local = QUESTIONS.filter(q => q.theme === state.settings.theme);
+                const local = QUESTIONS.filter(q => q.theme === state.settings.theme && q.difficulty === diffId);
                 selected = [...local].sort(() => Math.random() - 0.5).slice(0, state.settings.questionCount);
             }
 
