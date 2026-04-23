@@ -19,11 +19,21 @@
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+            background: #667EEA; /* 备用纯色，iOS 上远比渐变快 */
             min-height: 100vh;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+        }
+        /* 渐变背景独立合成层，避免每次 DOM 变化都触发重绘 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+            z-index: -1;
+            will-change: transform;
+        }
         }
         /* iOS 按钮优化 */
         button, .bz-buzzer-btn, .sd-host-btn, .sd-big-btn {
@@ -254,8 +264,8 @@
             color: white;
             cursor: pointer;
             background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
-            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
-            transition: transform 0.05s, box-shadow 0.1s;
+            filter: drop-shadow(0 4px 16px rgba(245, 158, 11, 0.4));
+            transition: transform 0.05s, filter 0.1s;
             will-change: transform;
             transform: translateZ(0);
             touch-action: manipulation;
@@ -867,25 +877,30 @@
             position: relative;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            will-change: transform;
+            transform: translateZ(0);
         }
         .bz-buzzer-btn.ready {
             background: linear-gradient(135deg, #EF4444 0%, #DC2626 50%, #B91C1C 100%);
             color: white;
-            box-shadow: 0 8px 32px rgba(220, 38, 38, 0.5), inset 0 -4px 0 rgba(0,0,0,0.2);
+            border-bottom: 4px solid rgba(0,0,0,0.2);
+            filter: drop-shadow(0 8px 24px rgba(220, 38, 38, 0.5));
         }
         .bz-buzzer-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.95) translateZ(0);
         }
         .bz-buzzer-btn.locked {
             background: #4B5563;
             color: rgba(255,255,255,0.5);
             cursor: not-allowed;
-            box-shadow: none;
+            filter: none;
+            border-bottom: 4px solid rgba(0,0,0,0.3);
         }
         .bz-buzzer-btn.winner {
             background: linear-gradient(135deg, #10B981 0%, #059669 100%);
             color: white;
-            box-shadow: 0 8px 32px rgba(16, 185, 129, 0.5);
+            border-bottom: 4px solid rgba(0,0,0,0.2);
+            filter: drop-shadow(0 8px 24px rgba(16, 185, 129, 0.5));
         }
         .bz-buzzer-btn .bz-icon { font-size: 40px; }
         .bz-buzzer-btn .bz-label { font-size: 16px; }
@@ -1129,7 +1144,24 @@
                     <div class="fill" id="progressFill" style="width: 100%"></div>
                 </div>
                 <div class="question-content" id="questionContent">题目内容</div>
-                <div class="options-list" id="optionsList"></div>
+                <div class="options-list" id="optionsList">
+                    <div class="option-item" id="optA" role="button" tabindex="0" onclick="selectOption('A')" onkeydown="if(event.key==='Enter'||event.key===' ')selectOption('A')">
+                        <div class="option-key" id="optKeyA">A</div>
+                        <div class="option-text" id="optTextA"></div>
+                    </div>
+                    <div class="option-item" id="optB" role="button" tabindex="0" onclick="selectOption('B')" onkeydown="if(event.key==='Enter'||event.key===' ')selectOption('B')">
+                        <div class="option-key" id="optKeyB">B</div>
+                        <div class="option-text" id="optTextB"></div>
+                    </div>
+                    <div class="option-item" id="optC" role="button" tabindex="0" onclick="selectOption('C')" onkeydown="if(event.key==='Enter'||event.key===' ')selectOption('C')">
+                        <div class="option-key" id="optKeyC">C</div>
+                        <div class="option-text" id="optTextC"></div>
+                    </div>
+                    <div class="option-item" id="optD" role="button" tabindex="0" onclick="selectOption('D')" onkeydown="if(event.key==='Enter'||event.key===' ')selectOption('D')">
+                        <div class="option-key" id="optKeyD">D</div>
+                        <div class="option-text" id="optTextD"></div>
+                    </div>
+                </div>
                 <div id="snatchArea">
                     <button type="button" class="snatch-btn" id="snatchBtn" onclick="snatchQuestion()">
                         ⚡ 抢 答 ⚡
@@ -1355,7 +1387,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.23.2';
+        const APP_VERSION = '2026.04.23.4';
 
         let isSupabaseConnected = false;
 
@@ -1499,7 +1531,6 @@
             hasSnatched: false,
             snatchedPlayerId: '',
             selectedAnswer: '',
-            timerInterval: null,
             timeLeft: 15,
             realtimeChannel: null,
             isLocalMode: false,
@@ -3008,6 +3039,9 @@
         }
 
         // ==================== 游戏功能 ====================
+        // 对象池：复用预创建的4个选项DOM节点，仅更新内容
+        const OPT_KEYS = ['A', 'B', 'C', 'D'];
+
         function loadQuestion() {
             if (state.currentQuestion >= state.room.questions.length) {
                 endGame();
@@ -3024,14 +3058,27 @@
                 opts = Object.entries(opts).map(([k, v]) => ({ key: k, value: v }));
             }
 
-            document.getElementById('optionsList').innerHTML = opts.map(opt => `
-                <div class="option-item" data-key="${opt.key}" role="button" tabindex="0"
-                     onclick="selectOption('${opt.key}')"
-                     onkeydown="if(event.key==='Enter'||event.key===' ')selectOption('${opt.key}')">
-                    <div class="option-key">${opt.key}</div>
-                    <div class="option-text">${opt.value}</div>
-                </div>
-            `).join('');
+            // 渲染选项：直接操作预创建节点的 textContent，不销毁/重建DOM
+            const keyMap = {};
+            opts.forEach(opt => { keyMap[opt.key] = opt.value; });
+
+            OPT_KEYS.forEach(key => {
+                const optEl = document.getElementById('opt' + key);
+                const textEl = document.getElementById('optText' + key);
+                if (keyMap[key] !== undefined) {
+                    optEl.style.display = 'flex';
+                    textEl.textContent = keyMap[key];
+                    // 重置所有状态类（in-place修改，不重建节点）
+                    optEl.className = 'option-item';
+                    optEl.style.borderColor = '#E5E7EB';
+                    optEl.style.background = 'transparent';
+                    const keyEl = document.getElementById('optKey' + key);
+                    keyEl.style.background = '#F3F4F6';
+                    keyEl.style.color = '#374151';
+                } else {
+                    optEl.style.display = 'none';
+                }
+            });
 
             state.hasSnatched = state.snatchedPlayerId ? true : false;
             state.selectedAnswer = '';
@@ -3046,31 +3093,52 @@
             startTimer();
         }
 
+        // RAF 统一计时器：基于时间戳，精度高于 setInterval，且与屏幕刷新率同步
+        let _timerRAF = null;
+        let _timerStart = 0;
+        let _timerTotal = 0;
+        let _timerElapsed = 0;
+        let _timerRunning = false;
+
         function startTimer() {
-            clearInterval(state.timerInterval);
+            if (_timerRAF) cancelAnimationFrame(_timerRAF);
             state.timeLeft = state.settings.answerTime;
+            _timerStart = performance.now();
+            _timerTotal = state.settings.answerTime * 1000;
+            _timerElapsed = 0;
+            _timerRunning = true;
+
             document.getElementById('timerValue').textContent = state.timeLeft;
             document.getElementById('timer').classList.remove('warning');
             document.getElementById('progressFill').style.width = '100%';
 
-            const totalTime = state.timeLeft;
-            state.timerInterval = setInterval(async () => {
-                state.timeLeft--;
-                document.getElementById('timerValue').textContent = state.timeLeft;
-                document.getElementById('progressFill').style.width = (state.timeLeft / totalTime * 100) + '%';
+            function tick(now) {
+                if (!_timerRunning) return;
+                _timerElapsed = now - _timerStart;
+                const remaining = Math.max(0, _timerTotal - _timerElapsed);
+                const seconds = Math.ceil(remaining / 1000);
+                const pct = Math.max(0, remaining / _timerTotal * 100);
 
-                if (state.timeLeft <= 5) {
-                    document.getElementById('timer').classList.add('warning');
-                }
+                document.getElementById('timerValue').textContent = seconds;
+                document.getElementById('progressFill').style.width = pct + '%';
+                if (seconds <= 5) document.getElementById('timer').classList.add('warning');
 
-                if (state.timeLeft <= 0) {
-                    clearInterval(state.timerInterval);
+                if (remaining <= 0) {
+                    _timerRunning = false;
                     if (!state.hasSnatched) {
                         showToast('时间到！本题跳过');
-                        await nextQuestion();
+                        nextQuestion();
                     }
+                    return;
                 }
-            }, 1000);
+                _timerRAF = requestAnimationFrame(tick);
+            }
+            _timerRAF = requestAnimationFrame(tick);
+        }
+
+        function stopTimer() {
+            _timerRunning = false;
+            if (_timerRAF) { cancelAnimationFrame(_timerRAF); _timerRAF = null; }
         }
 
         async function snatchQuestion() {
@@ -3115,9 +3183,10 @@
             }
 
             state.selectedAnswer = key;
-            document.querySelectorAll('.option-item').forEach(item => {
-                item.classList.remove('selected');
-                if (item.dataset.key === key) item.classList.add('selected');
+            // 直接操作预创建节点，不遍历
+            OPT_KEYS.forEach(k => {
+                const el = document.getElementById('opt' + k);
+                el.classList.toggle('selected', k === key);
             });
             document.getElementById('submitAnswerBtn').disabled = false;
         }
@@ -3125,7 +3194,7 @@
         async function submitAnswer() {
             if (!state.selectedAnswer) return;
 
-            clearInterval(state.timerInterval);
+            stopTimer();
 
             const q = state.room.questions[state.currentQuestion];
             const isCorrect = state.selectedAnswer === q.answer;
@@ -3142,11 +3211,13 @@
                 await updatePlayerScoreToCloud(state.userId, player?.score || 0);
             }
 
-            // 显示答案
-            document.querySelectorAll('.option-item').forEach(item => {
-                item.classList.add('disabled');
-                if (item.dataset.key === q.answer) item.classList.add('correct');
-                else if (item.dataset.key === state.selectedAnswer && !isCorrect) item.classList.add('wrong');
+            // 显示答案：直接操作预创建节点
+            OPT_KEYS.forEach(k => {
+                const el = document.getElementById('opt' + k);
+                if (el.style.display === 'none') return;
+                el.classList.add('disabled');
+                if (k === q.answer) el.classList.add('correct');
+                else if (k === state.selectedAnswer && !isCorrect) el.classList.add('wrong');
             });
 
             document.getElementById('answerArea').style.display = 'none';
@@ -3215,7 +3286,7 @@
         }
 
         async function endGame() {
-            clearInterval(state.timerInterval);
+            stopTimer();
             state.gameState = 'ended';
 
             const ranking = [...state.players].sort((a, b) => b.score - a.score);
