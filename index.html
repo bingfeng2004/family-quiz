@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>家庭知识竞答</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #667EEA;
+            --secondary: #764BA2;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --info: #3B82F6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .screen {
+            display: none;
+            padding: 24px;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* 首页 */
+        .home-header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+        }
+
+        .home-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .home-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .home-header .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .home-buttons {
+            padding: 30px;
+        }
+
+        .btn-primary-custom {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-create {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+        }
+
+        .btn-create:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-join {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-join:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        /* 输入框 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* 主题选择 */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .theme-item {
+            text-align: center;
+            padding: 16px 8px;
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .theme-item:hover {
+            border-color: var(--primary);
+        }
+
+        .theme-item.active {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .theme-item .icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .theme-item .name {
+            font-size: 13px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        /* 单选按钮组 */
+        .radio-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .radio-item {
+            padding: 10px 16px;
+            border: 2px solid #E5E7EB;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .radio-item:hover {
+            border-color: var(--primary);
+        }
+
+        .radio-item.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        /* 房间信息 */
+        .room-code {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .room-code .label {
+            font-size: 14px;
+            color: #6B7280;
+            margin-bottom: 8px;
+        }
+
+        .room-code .code {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 8px;
+        }
+
+        .share-hint {
+            text-align: center;
+            font-size: 13px;
+            color: #6B7280;
+            margin-bottom: 20px;
+        }
+
+        /* 玩家列表 */
+        .player-list {
+            margin-bottom: 20px;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: #F9FAFB;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .player-item .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 12px;
+        }
+
+        .player-item .info {
+            flex: 1;
+        }
+
+        .player-item .name {
+            font-weight: 600;
+            color: #1F2937;
+        }
+
+        .player-item .role {
+            font-size: 12px;
+            color: #6B7280;
+        }
+
+        .player-item .status {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .status-waiting {
+            background: #FEF3C7;
+            color: #D97706;
+        }
+
+        .status-ready {
+            background: #D1FAE5;
+            color: #059669;
+        }
+
+        /* 游戏界面 */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #E5E7EB;
+            margin-bottom: 20px;
+        }
+
+        .question-counter {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .timer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .timer.warning {
+            color: var(--danger);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #E5E7EB;
+            border-radius: 3px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 3px;
+            transition: width 1s linear;
+        }
+
+        .question-content {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1F2937;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .options-list {
+            margin-bottom: 24px;
+        }
+
+        .option-item {
+            padding: 16px 20px;
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .option-item:hover:not(.disabled) {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .option-item.selected {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .option-item.correct {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .option-item.wrong {
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .option-item.disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .option-key {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #F3F4F6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-right: 12px;
+        }
+
+        .option-item.selected .option-key {
+            background: var(--primary);
+            color: white;
+        }
+
+        .option-item.correct .option-key {
+            background: var(--success);
+            color: white;
+        }
+
+        .option-item.wrong .option-key {
+            background: var(--danger);
+            color: white;
+        }
+
+        .snatch-btn {
+            width: 100%;
+            padding: 20px;
+            border: none;
+            border-radius: 16px;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+            animation: glow 2s infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.8); }
+        }
+
+        .snatch-btn:disabled {
+            background: #9CA3AF;
+            animation: none;
+            box-shadow: none;
+        }
+
+        .answer-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+        }
+
+        .answer-btn:disabled {
+            background: #9CA3AF;
+        }
+
+        /* 排行榜 */
+        .leaderboard {
+            background: #F9FAFB;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .leaderboard-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #6B7280;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+
+        .leaderboard-item .rank {
+            width: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .leaderboard-item .rank.gold { color: #F59E0B; }
+        .leaderboard-item .rank.silver { color: #9CA3AF; }
+        .leaderboard-item .rank.bronze { color: #CD7F32; }
+
+        .leaderboard-item .name {
+            flex: 1;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .leaderboard-item .score {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .leaderboard-item.current {
+            background: rgba(102, 126, 234, 0.1);
+            margin: 0 -8px;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        /* 解析区域 */
+        .explanation {
+            background: #FEF3C7;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .explanation-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #92400E;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .explanation-content {
+            font-size: 14px;
+            color: #78350F;
+            line-height: 1.6;
+        }
+
+        .video-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #F59E0B;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        /* 结果界面 */
+        .result-icon {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .result-icon .icon {
+            font-size: 80px;
+        }
+
+        .result-icon .icon.success { color: var(--success); }
+        .result-icon .icon.error { color: var(--danger); }
+
+        .result-text {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .result-text.success { color: var(--success); }
+        .result-text.error { color: var(--danger); }
+
+        .result-score {
+            text-align: center;
+            font-size: 16px;
+            color: #6B7280;
+            margin-bottom: 24px;
+        }
+
+        /* 最终排名 */
+        .final-ranking {
+            margin-top: 24px;
+        }
+
+        .final-ranking-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1F2937;
+            margin-bottom: 16px;
+        }
+
+        .final-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: #F9FAFB;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .final-item .medal {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .final-item .name {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .final-item .score {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* 管理后台 */
+        .admin-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: #1F2937;
+            color: white;
+        }
+
+        .admin-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .admin-tabs {
+            display: flex;
+            border-bottom: 1px solid #E5E7EB;
+            background: white;
+        }
+
+        .admin-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6B7280;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .admin-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .admin-content {
+            padding: 16px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .question-item {
+            padding: 12px;
+            background: #F9FAFB;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .question-item .q-content {
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .question-item .q-meta {
+            font-size: 12px;
+            color: #6B7280;
+        }
+
+        .question-item .q-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        /* Toast提示 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* 帮助提示 */
+        .help-tip {
+            background: #EFF6FF;
+            border: 1px solid #BFDBFE;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .help-tip .title {
+            font-weight: 600;
+            color: #1E40AF;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .help-tip .content {
+            font-size: 13px;
+            color: #1E3A8A;
+            line-height: 1.6;
+        }
+
+        /* 底部按钮 */
+        .bottom-btn {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 20px;
+            background: white;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+
+        .full-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+
+        .full-btn:disabled {
+            background: #D1D5DB;
+            cursor: not-allowed;
+        }
+
+        /* 模拟多玩家提示 */
+        .simulate-hint {
+            background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+            border: 1px solid #A7F3D0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .simulate-hint .title {
+            font-weight: 600;
+            color: #065F46;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .simulate-hint .content {
+            font-size: 13px;
+            color: #047857;
+            line-height: 1.6;
+        }
+
+        .simulate-btn {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 8px 16px;
+            background: #10B981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .simulate-btn:hover {
+            background: #059669;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- 首页 -->
+            <div id="homeScreen" class="screen active">
+                <div class="home-header">
+                    <div class="icon">🏠</div>
+                    <h1>家庭知识竞答</h1>
+                    <p>全家一起玩，知识趣味学</p>
+                </div>
+                <div class="home-buttons">
+                    <button class="btn-primary-custom btn-create" onclick="showCreateRoom()">
+                        <i class="bi bi-plus-circle"></i> 创建房间
+                    </button>
+                    <button class="btn-primary-custom btn-join" onclick="showJoinRoom()">
+                        <i class="bi bi-qr-code"></i> 加入房间
+                    </button>
+
+                    <div class="help-tip">
+                        <div class="title"><i class="bi bi-lightbulb"></i> 使用提示</div>
+                        <div class="content">
+                            在同一浏览器中打开多个标签页，即可模拟多人游戏！<br>
+                            标签页1创建房间，标签页2加入同一房间码。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 创建房间 -->
+            <div id="createRoomScreen" class="screen">
+                <h4 class="mb-4"><i class="bi bi-arrow-left" onclick="showHome()" style="cursor:pointer"></i> 创建房间</h4>
+
+                <div class="form-group">
+                    <label>你的昵称</label>
+                    <input type="text" class="form-control" id="createNickname" placeholder="请输入昵称" maxlength="10">
+                </div>
+
+                <div class="form-group">
+                    <label>选择主题</label>
+                    <div class="theme-grid" id="themeGrid"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>题目数量</label>
+                    <div class="radio-group" id="questionCountGroup">
+                        <div class="radio-item active" data-value="5">5题</div>
+                        <div class="radio-item" data-value="10">10题</div>
+                        <div class="radio-item" data-value="15">15题</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>答题时间</label>
+                    <div class="radio-group" id="answerTimeGroup">
+                        <div class="radio-item" data-value="10">10秒</div>
+                        <div class="radio-item active" data-value="15">15秒</div>
+                        <div class="radio-item" data-value="20">20秒</div>
+                        <div class="radio-item" data-value="30">30秒</div>
+                    </div>
+                </div>
+
+                <button class="btn-primary-custom btn-create" onclick="createRoom()">
+                    创建房间
+                </button>
+            </div>
+
+            <!-- 加入房间 -->
+            <div id="joinRoomScreen" class="screen">
+                <h4 class="mb-4"><i class="bi bi-arrow-left" onclick="showHome()" style="cursor:pointer"></i> 加入房间</h4>
+
+                <div class="form-group">
+                    <label>房间号</label>
+                    <input type="text" class="form-control" id="joinRoomCode" placeholder="请输入6位房间号" maxlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label>你的昵称</label>
+                    <input type="text" class="form-control" id="joinNickname" placeholder="请输入昵称" maxlength="10">
+                </div>
+
+                <button class="btn-primary-custom btn-create" onclick="joinRoom()">
+                    加入房间
+                </button>
+            </div>
+
+            <!-- 等待大厅 -->
+            <div id="waitingScreen" class="screen">
+                <div class="room-code">
+                    <div class="label">房间号</div>
+                    <div class="code" id="displayRoomCode">------</div>
+                </div>
+
+                <div class="player-list" id="playerList"></div>
+
+                <div class="share-hint">分享房间号给家人，一起加入吧！</div>
+
+                <button class="btn-primary-custom btn-create" id="startGameBtn" onclick="startGame()" disabled>
+                    等待玩家加入...
+                </button>
+
+                <div class="simulate-hint">
+                    <div class="title"><i class="bi bi-people"></i> 模拟多人游戏</div>
+                    <div class="content">
+                        打开新的浏览器标签页，输入同样的房间号，即可模拟多人游戏！
+                    </div>
+                    <button class="simulate-btn" onclick="copyRoomCode()">
+                        <i class="bi bi-clipboard"></i> 复制房间号
+                    </button>
+                </div>
+            </div>
+
+            <!-- 游戏界面 -->
+            <div id="gameScreen" class="screen">
+                <div class="game-header">
+                    <div class="question-counter" id="questionCounter">第 1/10 题</div>
+                    <div class="timer" id="timer">
+                        <i class="bi bi-clock"></i>
+                        <span id="timerValue">15</span>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="fill" id="progressFill" style="width: 100%"></div>
+                </div>
+
+                <div class="question-content" id="questionContent">
+                    题目内容
+                </div>
+
+                <div class="options-list" id="optionsList"></div>
+
+                <div id="snatchArea">
+                    <button class="snatch-btn" id="snatchBtn" onclick="snatchQuestion()">
+                        ⚡ 抢 答 ⚡
+                    </button>
+                </div>
+
+                <div id="answerArea" style="display:none;">
+                    <button class="answer-btn" id="submitAnswerBtn" onclick="submitAnswer()" disabled>
+                        确认答案
+                    </button>
+                </div>
+
+                <div class="leaderboard" id="leaderboard"></div>
+
+                <div id="explanationArea" style="display:none;">
+                    <div class="explanation">
+                        <div class="explanation-header" onclick="toggleExplanation()">
+                            <i class="bi bi-book"></i> 点击查看解析
+                            <i class="bi bi-chevron-down" id="explanationArrow"></i>
+                        </div>
+                        <div class="explanation-content" id="explanationContent" style="display:none;"></div>
+                        <a href="#" class="video-link" id="videoLink" target="_blank" style="display:none;">
+                            <i class="bi bi-play-circle"></i> 观看视频讲解
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结果界面 -->
+            <div id="resultScreen" class="screen">
+                <div class="result-icon">
+                    <div class="icon" id="resultIcon">🏆</div>
+                </div>
+                <div class="result-text" id="resultText">游戏结束</div>
+                <div class="result-score" id="resultScore">感谢参与！</div>
+
+                <div class="final-ranking">
+                    <div class="final-ranking-title">🏆 最终排行榜</div>
+                    <div id="finalRanking"></div>
+                </div>
+
+                <button class="btn-primary-custom btn-create mt-4" onclick="backToHome()">
+                    返回首页
+                </button>
+            </div>
+
+            <!-- 管理后台 -->
+            <div id="adminScreen" class="screen">
+                <div class="admin-header">
+                    <i class="bi bi-arrow-left" onclick="showHome()" style="cursor:pointer; margin-right:12px"></i>
+                    <h1>题库管理</h1>
+                    <button class="btn btn-sm btn-light ms-auto" onclick="showHome()">返回</button>
+                </div>
+
+                <div class="admin-tabs">
+                    <div class="admin-tab active" onclick="switchAdminTab('questions')">题目管理</div>
+                    <div class="admin-tab" onclick="switchAdminTab('themes')">主题管理</div>
+                    <div class="admin-tab" onclick="switchAdminTab('add')">添加题目</div>
+                </div>
+
+                <div class="admin-content" id="adminContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理后台入口 -->
+    <div style="position:fixed;bottom:20px;right:20px;">
+        <button class="btn btn-secondary btn-sm" onclick="showAdmin()" style="opacity:0.5;">
+            <i class="bi bi-gear"></i> 管理
+        </button>
+    </div>
+
+    <script>
+        // ==================== 数据定义 ====================
+        const THEMES = [
+            { id: 'science', name: '科学', icon: '🔬' },
+            { id: 'history', name: '历史', icon: '📜' },
+            { id: 'geo', name: '地理', icon: '🌍' },
+            { id: 'animal', name: '动物', icon: '🐾' },
+            { id: 'plant', name: '植物', icon: '🌳' },
+            { id: 'space', name: '天文', icon: '🚀' }
+        ];
+
+        const QUESTIONS = [
+            // 科学
+            { id: 'S001', theme: 'science', difficulty: 'easy', type: 'single',
+              content: '水的化学式是什么？',
+              options: [{key:'A',value:'H2O'},{key:'B',value:'CO2'},{key:'C',value:'O2'},{key:'D',value:'NaCl'}],
+              answer: 'A', explanation: '水的化学式是H2O，表示一个水分子由两个氢原子和一个氧原子组成。', videoUrl: '' },
+            { id: 'S002', theme: 'science', difficulty: 'easy', type: 'single',
+              content: '地球的自转周期大约是多少小时？',
+              options: [{key:'A',value:'12小时'},{key:'B',value:'24小时'},{key:'C',value:'36小时'},{key:'D',value:'48小时'}],
+              answer: 'B', explanation: '地球自转一周大约需要24小时，这就是一天的长度。', videoUrl: '' },
+            { id: 'S003', theme: 'science', difficulty: 'medium', type: 'single',
+              content: '光在真空中的传播速度是多少？',
+              options: [{key:'A',value:'30万公里/秒'},{key:'B',value:'30亿公里/秒'},{key:'C',value:'3万公里/秒'},{key:'D',value:'300万公里/秒'}],
+              answer: 'A', explanation: '光速是宇宙中最快的速度，约为30万公里/秒，或精确地说299,792,458米/秒。', videoUrl: '' },
+            { id: 'S004', theme: 'science', difficulty: 'medium', type: 'single',
+              content: '人体最大的器官是什么？',
+              options: [{key:'A',value:'心脏'},{key:'B',value:'肝脏'},{key:'C',value:'皮肤'},{key:'D',value:'大脑'}],
+              answer: 'C', explanation: '皮肤是人体最大的器官，成年人皮肤总面积约为1.5-2平方米。', videoUrl: '' },
+            { id: 'S005', theme: 'science', difficulty: 'hard', type: 'single',
+              content: '元素周期表中原子序数为79的元素是？',
+              options: [{key:'A',value:'银'},{key:'B',value:'铂'},{key:'C',value:'金'},{key:'D',value:'铜'}],
+              answer: 'C', explanation: '金元素的原子序数是79，化学符号是Au（来自拉丁语Aurum）。', videoUrl: '' },
+
+            // 历史
+            { id: 'H001', theme: 'history', difficulty: 'easy', type: 'single',
+              content: '中国的第一个皇帝是谁？',
+              options: [{key:'A',value:'刘邦'},{key:'B',value:'项羽'},{key:'C',value:'秦始皇'},{key:'D',value:'汉武帝'}],
+              answer: 'C', explanation: '秦始皇是中国历史上第一个皇帝，他在公元前221年统一六国后自称"始皇帝"。', videoUrl: '' },
+            { id: 'H002', theme: 'history', difficulty: 'easy', type: 'single',
+              content: '明朝的开国皇帝是谁？',
+              options: [{key:'A',value:'朱棣'},{key:'B',value:'朱元璋'},{key:'C',value:'朱允炆'},{key:'D',value:'崇祯'}],
+              answer: 'B', explanation: '朱元璋是明朝的开国皇帝，年号洪武，他从乞丐一步步成为皇帝，是中国历史上出身最卑微的皇帝之一。', videoUrl: '' },
+            { id: 'H003', theme: 'history', difficulty: 'medium', type: 'single',
+              content: '第一次鸦片战争爆发于哪一年？',
+              options: [{key:'A',value:'1839年'},{key:'B',value:'1840年'},{key:'C',value:'1842年'},{key:'D',value:'1850年'}],
+              answer: 'B', explanation: '第一次鸦片战争于1840年爆发，这是中国近代史的开端。', videoUrl: '' },
+            { id: 'H004', theme: 'history', difficulty: 'medium', type: 'single',
+              content: '丝绸之路的主要开拓者是谁？',
+              options: [{key:'A',value:'张骞'},{key:'B',value:'班超'},{key:'C',value:'郑和'},{key:'D',value:'玄奘'}],
+              answer: 'A', explanation: '张骞被誉为"丝绸之路之父"，他出使西域，开辟了连接东西方的重要商路。', videoUrl: '' },
+
+            // 地理
+            { id: 'G001', theme: 'geo', difficulty: 'easy', type: 'single',
+              content: '世界上面积最大的国家是哪个？',
+              options: [{key:'A',value:'中国'},{key:'B',value:'加拿大'},{key:'C',value:'俄罗斯'},{key:'D',value:'美国'}],
+              answer: 'C', explanation: '俄罗斯是世界上面积最大的国家，总面积约1709万平方公里。', videoUrl: '' },
+            { id: 'G002', theme: 'geo', difficulty: 'easy', type: 'single',
+              content: '世界上最高的山峰是什么？',
+              options: [{key:'A',value:'乔戈里峰'},{key:'B',value:'干城章嘉峰'},{key:'C',value:'珠穆朗玛峰'},{key:'D',value:'马卡鲁峰'}],
+              answer: 'C', explanation: '珠穆朗玛峰是世界最高峰，海拔8848.86米，位于中国和尼泊尔边境。', videoUrl: '' },
+            { id: 'G003', theme: 'geo', difficulty: 'medium', type: 'single',
+              content: '世界上最长的河流是？',
+              options: [{key:'A',value:'亚马逊河'},{key:'B',value:'尼罗河'},{key:'C',value:'长江'},{key:'D',value:'密西西比河'}],
+              answer: 'B', explanation: '尼罗河全长约6650公里，是世界上最长的河流，主要流经非洲东部。', videoUrl: '' },
+            { id: 'G004', theme: 'geo', difficulty: 'medium', type: 'single',
+              content: '中国陆地面积最大的省份是？',
+              options: [{key:'A',value:'新疆'},{key:'B',value:'西藏'},{key:'C',value:'内蒙古'},{key:'D',value:'青海'}],
+              answer: 'A', explanation: '新疆维吾尔自治区是中国陆地面积最大的省级行政区，面积约166万平方公里。', videoUrl: '' },
+
+            // 动物
+            { id: 'A001', theme: 'animal', difficulty: 'easy', type: 'single',
+              content: '以下哪个是哺乳动物？',
+              options: [{key:'A',value:'鲨鱼'},{key:'B',value:'鲸鱼'},{key:'C',value:'鳄鱼'},{key:'D',value:'企鹅'}],
+              answer: 'B', explanation: '鲸鱼是哺乳动物，它们用肺呼吸，是恒温动物，且是胎生哺乳的。', videoUrl: '' },
+            { id: 'A002', theme: 'animal', difficulty: 'easy', type: 'single',
+              content: '猎豹是世界上跑得最快的动物，它的速度可达多少公里/小时？',
+              options: [{key:'A',value:'80公里/小时'},{key:'B',value:'100公里/小时'},{key:'C',value:'120公里/小时'},{key:'D',value:'150公里/小时'}],
+              answer: 'C', explanation: '猎豹的最高速度可达120公里/小时，是陆地上跑得最快的动物。', videoUrl: '' },
+            { id: 'A003', theme: 'animal', difficulty: 'medium', type: 'single',
+              content: '企鹅属于鸟类吗？',
+              options: [{key:'A',value:'不属于'},{key:'B',value:'属于'},{key:'C',value:'属于哺乳动物'},{key:'D',value:'是两栖动物'}],
+              answer: 'B', explanation: '企鹅属于鸟类，它们是恒温动物，羽毛是鸟类的特征，虽然不会飞但会游泳。', videoUrl: '' },
+            { id: 'A004', theme: 'animal', difficulty: 'medium', type: 'single',
+              content: '变色龙改变体色主要是为了？',
+              options: [{key:'A',value:'美观'},{key:'B',value:'调节体温和伪装'},{key:'C',value:'吸引配偶'},{key:'D',value:'恐吓敌人'}],
+              answer: 'B', explanation: '变色龙变色主要用于调节体温和伪装捕食，而非单纯为了美观或吸引配偶。', videoUrl: '' },
+
+            // 植物
+            { id: 'P001', theme: 'plant', difficulty: 'easy', type: 'single',
+              content: '以下哪种植物不需要土壤就能生长？',
+              options: [{key:'A',value:'苹果树'},{key:'B',value:'小麦'},{key:'C',value:'空气凤梨'},{key:'D',value:'水稻'}],
+              answer: 'C', explanation: '空气凤梨是少数不需要土壤就能生长的植物，它们通过叶片吸收空气中的水分和养分。', videoUrl: '' },
+            { id: 'P002', theme: 'plant', difficulty: 'medium', type: 'single',
+              content: '光合作用主要发生在植物的哪个部位？',
+              options: [{key:'A',value:'根部'},{key:'B',value:'茎部'},{key:'C',value:'叶片'},{key:'D',value:'花朵'}],
+              answer: 'C', explanation: '光合作用主要发生在叶片的叶绿体中，通过吸收阳光将二氧化碳和水转化为有机物。', videoUrl: '' },
+            { id: 'P003', theme: 'plant', difficulty: 'medium', type: 'single',
+              content: '以下哪种植物的种子最大？',
+              options: [{key:'A',value:'西瓜'},{key:'B',value:'椰子'},{key:'C',value:'海椰子'},{key:'D',value:'榴莲'}],
+              answer: 'C', explanation: '海椰子的种子是世界上最大的种子，可以重达25公斤，需要10年才能成熟。', videoUrl: '' },
+
+            // 天文
+            { id: 'SP001', theme: 'space', difficulty: 'easy', type: 'single',
+              content: '太阳系中有多少颗行星？',
+              options: [{key:'A',value:'7颗'},{key:'B',value:'8颗'},{key:'C',value:'9颗'},{key:'D',value:'10颗'}],
+              answer: 'B', explanation: '太阳系有8颗行星：水星、金星、地球、火星、木星、土星、天王星、海王星。冥王星已被降级为矮行星。', videoUrl: '' },
+            { id: 'SP002', theme: 'space', difficulty: 'easy', type: 'single',
+              content: '地球距离月球大约有多远？',
+              options: [{key:'A',value:'38万公里'},{key:'B',value:'380万公里'},{key:'C',value:'3800万公里'},{key:'D',value:'38万公里公里'}],
+              answer: 'A', explanation: '地球与月球的平均距离约为38.4万公里，这个距离可以让地球和太阳之间排下约30个地球。', videoUrl: '' },
+            { id: 'SP003', theme: 'space', difficulty: 'medium', type: 'single',
+              content: '银河系的形状是什么样的？',
+              options: [{key:'A',value:'圆形'},{key:'B',value:'方形'},{key:'C',value:'螺旋形'},{key:'D',value:'不规则形'}],
+              answer: 'C', explanation: '银河系是一个螺旋星系，从上方看像一个旋转的风车，从侧面看像一个扁平的盘子。', videoUrl: '' },
+            { id: 'SP004', theme: 'space', difficulty: 'hard', type: 'single',
+              content: '太阳的寿命大约还有多久？',
+              options: [{key:'A',value:'10亿年'},{key:'B',value:'50亿年'},{key:'C',value:'100亿年'},{key:'D',value:'500亿年'}],
+              answer: 'B', explanation: '太阳目前约46亿岁，预计还能燃烧约50亿年，届时会膨胀成红巨星。', videoUrl: '' }
+        ];
+
+        // ==================== 应用状态 ====================
+        let state = {
+            playerId: '',
+            playerName: '',
+            room: null,
+            players: [],
+            currentQuestion: 0,
+            questions: [],
+            settings: {
+                theme: 'science',
+                questionCount: 10,
+                answerTime: 15
+            },
+            gameState: 'idle', // idle, waiting, playing, ended
+            hasSnatched: false,
+            snatchedPlayerId: '',
+            selectedAnswer: '',
+            timerInterval: null,
+            timeLeft: 15
+        };
+
+        // ==================== 通信模块 ====================
+        const CHANNEL_NAME = 'family_quiz';
+        let channel = null;
+
+        function initChannel() {
+            if (typeof BroadcastChannel !== 'undefined') {
+                channel = new BroadcastChannel(CHANNEL_NAME);
+                channel.onmessage = (event) => {
+                    handleMessage(event.data);
+                };
+            }
+
+            // 定期检查LocalStorage作为备用
+            setInterval(() => {
+                checkLocalStorageUpdate();
+            }, 500);
+        }
+
+        function broadcast(action, data) {
+            const message = { action, data, sender: state.playerId, timestamp: Date.now() };
+            if (channel) {
+                channel.postMessage(message);
+            }
+            // 同时存入LocalStorage
+            localStorage.setItem('quiz_' + state.room?.id, JSON.stringify({
+                ...message,
+                roomData: state.room
+            }));
+        }
+
+        let lastCheckTime = 0;
+        function checkLocalStorageUpdate() {
+            if (!state.room) return;
+            const key = 'quiz_' + state.room.id;
+            const data = localStorage.getItem(key);
+            if (data) {
+                const parsed = JSON.parse(data);
+                if (parsed.timestamp > lastCheckTime && parsed.sender !== state.playerId) {
+                    lastCheckTime = parsed.timestamp;
+                    handleMessage(parsed);
+                }
+            }
+        }
+
+        function handleMessage(msg) {
+            switch(msg.action) {
+                case 'room_created':
+                    if (msg.data.hostId !== state.playerId) {
+                        state.room = msg.data;
+                        state.players = msg.data.players;
+                        showWaiting();
+                    }
+                    break;
+
+                case 'player_joined':
+                    if (state.room && msg.data.roomId === state.room.id) {
+                        const exists = state.players.find(p => p.id === msg.data.player.id);
+                        if (!exists) {
+                            state.players.push(msg.data.player);
+                            if (state.room) state.room.players = state.players;
+                            updatePlayerList();
+                        }
+                    }
+                    break;
+
+                case 'player_left':
+                    if (state.room && msg.data.roomId === state.room.id) {
+                        state.players = state.players.filter(p => p.id !== msg.data.playerId);
+                        if (state.room) state.room.players = state.players;
+                        updatePlayerList();
+                    }
+                    break;
+
+                case 'game_started':
+                    if (state.room && msg.data.roomId === state.room.id) {
+                        state.questions = msg.data.questions;
+                        state.currentQuestion = 0;
+                        state.gameState = 'playing';
+                        showGame();
+                        loadQuestion();
+                    }
+                    break;
+
+                case 'question_answered':
+                    if (state.room && msg.data.roomId === state.room.id) {
+                        state.players = msg.data.players;
+                        updateLeaderboard();
+                        showResult(msg.data);
+                    }
+                    break;
+
+                case 'next_question':
+                    if (state.room && msg.data.roomId === state.room.id) {
+                        state.currentQuestion = msg.data.questionIndex;
+                        state.hasSnatched = false;
+                        state.snatchedPlayerId = '';
+                        state.selectedAnswer = '';
+                        loadQuestion();
+                    }
+                    break;
+
+                case 'game_ended':
+                    if (state.room && msg.data.roomId === state.room.id) {
+                        state.gameState = 'ended';
+                        showFinalResult(msg.data.ranking);
+                    }
+                    break;
+
+                case 'player_snatched':
+                    if (state.room && msg.data.roomId === state.room.id) {
+                        state.snatchedPlayerId = msg.data.playerId;
+                        updateSnatchStatus();
+                    }
+                    break;
+            }
+        }
+
+        // ==================== UI切换 ====================
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function showHome() {
+            showScreen('homeScreen');
+        }
+
+        function showCreateRoom() {
+            showScreen('createRoomScreen');
+            initThemeGrid();
+        }
+
+        function showJoinRoom() {
+            showScreen('joinRoomScreen');
+        }
+
+        function showWaiting() {
+            showScreen('waitingScreen');
+            document.getElementById('displayRoomCode').textContent = state.room.id;
+            updatePlayerList();
+        }
+
+        function showGame() {
+            showScreen('gameScreen');
+        }
+
+        function showAdmin() {
+            showScreen('adminScreen');
+            loadAdminQuestions();
+        }
+
+        // ==================== 房间功能 ====================
+        function generateRoomId() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        function initThemeGrid() {
+            const grid = document.getElementById('themeGrid');
+            grid.innerHTML = THEMES.map(t => `
+                <div class="theme-item ${t.id === state.settings.theme ? 'active' : ''}" onclick="selectTheme('${t.id}')">
+                    <div class="icon">${t.icon}</div>
+                    <div class="name">${t.name}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectTheme(themeId) {
+            state.settings.theme = themeId;
+            document.querySelectorAll('.theme-item').forEach(item => {
+                item.classList.toggle('active', item.querySelector('.name').textContent === THEMES.find(t => t.id === themeId).name);
+            });
+        }
+
+        function initRadioGroup(groupId, key) {
+            document.querySelectorAll(`#${groupId} .radio-item`).forEach(item => {
+                item.addEventListener('click', () => {
+                    document.querySelectorAll(`#${groupId} .radio-item`).forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    state.settings[key] = parseInt(item.dataset.value);
+                });
+            });
+        }
+
+        function createRoom() {
+            const nickname = document.getElementById('createNickname').value.trim();
+            if (!nickname) {
+                showToast('请输入昵称');
+                return;
+            }
+
+            state.playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            state.playerName = nickname;
+
+            // 准备题目
+            const themeQuestions = QUESTIONS.filter(q => q.theme === state.settings.theme);
+            const shuffled = [...themeQuestions].sort(() => Math.random() - 0.5);
+            const selected = shuffled.slice(0, state.settings.questionCount);
+
+            state.room = {
+                id: generateRoomId(),
+                hostId: state.playerId,
+                settings: { ...state.settings },
+                players: [{
+                    id: state.playerId,
+                    name: nickname,
+                    score: 0,
+                    isHost: true
+                }],
+                questions: selected
+            };
+
+            state.players = state.room.players;
+
+            broadcast('room_created', state.room);
+            showWaiting();
+        }
+
+        function joinRoom() {
+            const code = document.getElementById('joinRoomCode').value.trim();
+            const nickname = document.getElementById('joinNickname').value.trim();
+
+            if (!code || code.length !== 6) {
+                showToast('请输入6位房间号');
+                return;
+            }
+            if (!nickname) {
+                showToast('请输入昵称');
+                return;
+            }
+
+            state.playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            state.playerName = nickname;
+
+            // 查找房间（通过LocalStorage）
+            let roomFound = false;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('quiz_')) {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    if (data.roomData && data.roomData.id === code) {
+                        state.room = data.roomData;
+                        roomFound = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!roomFound) {
+                showToast('房间不存在或已开始');
+                return;
+            }
+
+            // 检查是否已加入
+            if (state.room.players.find(p => p.id === state.playerId)) {
+                state.players = state.room.players;
+            } else {
+                const newPlayer = {
+                    id: state.playerId,
+                    name: nickname,
+                    score: 0,
+                    isHost: false
+                };
+                state.room.players.push(newPlayer);
+                state.players = state.room.players;
+                broadcast('player_joined', { roomId: code, player: newPlayer });
+            }
+
+            showWaiting();
+        }
+
+        function updatePlayerList() {
+            const list = document.getElementById('playerList');
+            const avatars = ['👨', '👩', '👦', '👧', '👴', '👵', '🧑', '👨‍💼'];
+
+            list.innerHTML = state.players.map((p, i) => `
+                <div class="player-item">
+                    <div class="avatar" style="background: hsl(${i * 45}, 70%, 80%)">
+                        ${p.name.charAt(0)}
+                    </div>
+                    <div class="info">
+                        <div class="name">${p.name} ${p.isHost ? '👑' : ''}</div>
+                        <div class="role">${p.isHost ? '房主' : '玩家'}</div>
+                    </div>
+                    <div class="status status-ready">
+                        <i class="bi bi-check-circle"></i> 已加入
+                    </div>
+                </div>
+            `).join('');
+
+            // 房主可以开始游戏
+            const host = state.players.find(p => p.isHost);
+            const startBtn = document.getElementById('startGameBtn');
+            if (host && host.id === state.playerId) {
+                startBtn.disabled = state.players.length < 1;
+                startBtn.textContent = state.players.length >= 2 ? '🎮 开始游戏' : '等待玩家加入...';
+            } else {
+                startBtn.disabled = true;
+                startBtn.textContent = '等待房主开始...';
+            }
+        }
+
+        function startGame() {
+            if (state.players.length < 1) {
+                showToast('至少需要1名玩家');
+                return;
+            }
+
+            state.room.questions = state.room.questions.map((q, i) => ({ ...q, index: i }));
+            broadcast('game_started', { roomId: state.room.id, questions: state.room.questions });
+
+            state.questions = state.room.questions;
+            state.currentQuestion = 0;
+            state.gameState = 'playing';
+            showGame();
+            loadQuestion();
+        }
+
+        function copyRoomCode() {
+            navigator.clipboard.writeText(state.room.id).then(() => {
+                showToast('房间号已复制');
+            }).catch(() => {
+                showToast('房间号: ' + state.room.id);
+            });
+        }
+
+        // ==================== 游戏功能 ====================
+        function loadQuestion() {
+            if (state.currentQuestion >= state.questions.length) {
+                endGame();
+                return;
+            }
+
+            const q = state.questions[state.currentQuestion];
+            document.getElementById('questionCounter').textContent =
+                `第 ${state.currentQuestion + 1}/${state.questions.length} 题`;
+            document.getElementById('questionContent').textContent = q.content;
+
+            const optionsList = document.getElementById('optionsList');
+            optionsList.innerHTML = q.options.map(opt => `
+                <div class="option-item" data-key="${opt.key}" onclick="selectOption('${opt.key}')">
+                    <div class="option-key">${opt.key}</div>
+                    <div class="option-text">${opt.value}</div>
+                </div>
+            `).join('');
+
+            // 重置状态
+            state.hasSnatched = false;
+            state.snatchedPlayerId = '';
+            state.selectedAnswer = '';
+
+            // 显示抢答按钮
+            document.getElementById('snatchArea').style.display = 'block';
+            document.getElementById('answerArea').style.display = 'none';
+            document.getElementById('explanationArea').style.display = 'none';
+            document.getElementById('snatchBtn').disabled = false;
+            document.getElementById('snatchBtn').textContent = '⚡ 抢 答 ⚡';
+
+            // 更新排行榜
+            updateLeaderboard();
+
+            // 开始计时
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(state.timerInterval);
+            state.timeLeft = state.settings.answerTime;
+            document.getElementById('timerValue').textContent = state.timeLeft;
+            document.getElementById('timer').classList.remove('warning');
+            document.getElementById('progressFill').style.width = '100%';
+
+            const totalTime = state.timeLeft;
+            state.timerInterval = setInterval(() => {
+                state.timeLeft--;
+                document.getElementById('timerValue').textContent = state.timeLeft;
+
+                const percent = (state.timeLeft / totalTime) * 100;
+                document.getElementById('progressFill').style.width = percent + '%';
+
+                if (state.timeLeft <= 5) {
+                    document.getElementById('timer').classList.add('warning');
+                }
+
+                if (state.timeLeft <= 0) {
+                    clearInterval(state.timerInterval);
+                    if (!state.hasSnatched) {
+                        showToast('时间到！本题跳过');
+                        setTimeout(() => {
+                            nextQuestion();
+                        }, 2000);
+                    }
+                }
+            }, 1000);
+        }
+
+        function snatchQuestion() {
+            if (state.hasSnatched) return;
+
+            state.hasSnatched = true;
+            state.snatchedPlayerId = state.playerId;
+
+            document.getElementById('snatchBtn').disabled = true;
+            document.getElementById('snatchBtn').textContent = `已被 ${state.playerName} 抢到！`;
+
+            broadcast('player_snatched', { roomId: state.room.id, playerId: state.playerId });
+
+            // 显示答题界面
+            document.getElementById('snatchArea').style.display = 'none';
+            document.getElementById('answerArea').style.display = 'block';
+            document.getElementById('submitAnswerBtn').disabled = true;
+
+            showToast(`${state.playerName} 抢答成功！`);
+        }
+
+        function updateSnatchStatus() {
+            if (state.snatchedPlayerId && state.snatchedPlayerId !== state.playerId) {
+                const player = state.players.find(p => p.id === state.snatchedPlayerId);
+                document.getElementById('snatchBtn').disabled = true;
+                document.getElementById('snatchBtn').textContent = `已被 ${player?.name || '其他玩家'} 抢到！`;
+                document.getElementById('snatchArea').style.display = 'block';
+                document.getElementById('answerArea').style.display = 'none';
+            }
+        }
+
+        function selectOption(key) {
+            if (!state.hasSnatched || state.snatchedPlayerId !== state.playerId) {
+                if (!state.hasSnatched) {
+                    showToast('请先抢答！');
+                } else {
+                    showToast('等待抢到的人作答');
+                }
+                return;
+            }
+
+            state.selectedAnswer = key;
+            document.querySelectorAll('.option-item').forEach(item => {
+                item.classList.remove('selected');
+                if (item.dataset.key === key) {
+                    item.classList.add('selected');
+                }
+            });
+
+            document.getElementById('submitAnswerBtn').disabled = false;
+        }
+
+        function submitAnswer() {
+            if (!state.selectedAnswer) return;
+
+            clearInterval(state.timerInterval);
+
+            const q = state.questions[state.currentQuestion];
+            const isCorrect = state.selectedAnswer === q.answer;
+
+            // 更新分数
+            const player = state.players.find(p => p.id === state.playerId);
+            if (player) {
+                player.score += isCorrect ? 1 : -1;
+                if (player.score < 0) player.score = 0;
+            }
+
+            // 显示答案
+            document.querySelectorAll('.option-item').forEach(item => {
+                item.classList.add('disabled');
+                if (item.dataset.key === q.answer) {
+                    item.classList.add('correct');
+                } else if (item.dataset.key === state.selectedAnswer && !isCorrect) {
+                    item.classList.add('wrong');
+                }
+            });
+
+            document.getElementById('answerArea').style.display = 'none';
+
+            // 显示解析
+            showExplanation(q, isCorrect);
+
+            // 广播答案
+            broadcast('player_answered', {
+                roomId: state.room.id,
+                players: state.players,
+                isCorrect,
+                answer: state.selectedAnswer,
+                correctAnswer: q.answer
+            });
+
+            // 3秒后进入下一题
+            setTimeout(() => {
+                nextQuestion();
+            }, 3000);
+        }
+
+        function showExplanation(q, isCorrect) {
+            document.getElementById('explanationArea').style.display = 'block';
+            document.getElementById('explanationContent').textContent = q.explanation;
+            document.getElementById('explanationContent').style.display = 'none';
+            document.getElementById('explanationArrow').className = 'bi bi-chevron-down';
+
+            if (q.videoUrl) {
+                document.getElementById('videoLink').href = q.videoUrl;
+                document.getElementById('videoLink').style.display = 'inline-flex';
+            }
+        }
+
+        function toggleExplanation() {
+            const content = document.getElementById('explanationContent');
+            const arrow = document.getElementById('explanationArrow');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.className = 'bi bi-chevron-up';
+            } else {
+                content.style.display = 'none';
+                arrow.className = 'bi bi-chevron-down';
+            }
+        }
+
+        function nextQuestion() {
+            state.currentQuestion++;
+
+            if (state.currentQuestion >= state.questions.length) {
+                endGame();
+                return;
+            }
+
+            broadcast('next_question', {
+                roomId: state.room.id,
+                questionIndex: state.currentQuestion
+            });
+
+            loadQuestion();
+        }
+
+        function showResult(data) {
+            // 更新排行榜
+            updateLeaderboard();
+        }
+
+        function updateLeaderboard() {
+            const sorted = [...state.players].sort((a, b) => b.score - a.score);
+            const leaderboard = document.getElementById('leaderboard');
+
+            leaderboard.innerHTML = `
+                <div class="leaderboard-title"><i class="bi bi-trophy"></i> 排行榜</div>
+                ${sorted.map((p, i) => `
+                    <div class="leaderboard-item ${p.id === state.playerId ? 'current' : ''}">
+                        <span class="rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</span>
+                        <span class="name">${p.name}</span>
+                        <span class="score">${p.score}分</span>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function endGame() {
+            const ranking = [...state.players].sort((a, b) => b.score - a.score);
+
+            broadcast('game_ended', {
+                roomId: state.room.id,
+                ranking
+            });
+
+            showFinalResult(ranking);
+        }
+
+        function showFinalResult(ranking) {
+            showScreen('resultScreen');
+
+            const currentPlayer = ranking.find(p => p.id === state.playerId);
+            const rank = ranking.findIndex(p => p.id === state.playerId) + 1;
+
+            if (rank === 1) {
+                document.getElementById('resultIcon').textContent = '🏆';
+                document.getElementById('resultIcon').className = 'icon success';
+                document.getElementById('resultText').textContent = '恭喜夺冠！';
+                document.getElementById('resultText').className = 'result-text success';
+            } else if (rank <= 3) {
+                document.getElementById('resultIcon').textContent = '🎉';
+                document.getElementById('resultIcon').className = 'icon success';
+                document.getElementById('resultText').textContent = `第${rank}名！`;
+                document.getElementById('resultText').className = 'result-text success';
+            } else {
+                document.getElementById('resultIcon').textContent = '💪';
+                document.getElementById('resultIcon').className = 'icon';
+                document.getElementById('resultText').textContent = '再接再厉！';
+                document.getElementById('resultText').className = 'result-text';
+            }
+
+            document.getElementById('resultScore').textContent = `你的得分: ${currentPlayer?.score || 0} 分`;
+
+            const medals = ['🥇', '🥈', '🥉', '', '', '', '', ''];
+            document.getElementById('finalRanking').innerHTML = ranking.map((p, i) => `
+                <div class="final-item ${p.id === state.playerId ? 'current' : ''}">
+                    <span class="medal">${medals[i] || ''}</span>
+                    <span class="name">${p.name}</span>
+                    <span class="score">${p.score}分</span>
+                </div>
+            `).join('');
+        }
+
+        function backToHome() {
+            state.room = null;
+            state.players = [];
+            state.gameState = 'idle';
+            showHome();
+        }
+
+        // ==================== 管理后台 ====================
+        function switchAdminTab(tab) {
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (tab === 'questions') {
+                loadAdminQuestions();
+            } else if (tab === 'themes') {
+                loadAdminThemes();
+            } else if (tab === 'add') {
+                showAddQuestionForm();
+            }
+        }
+
+        function loadAdminQuestions() {
+            const content = document.getElementById('adminContent');
+            content.innerHTML = QUESTIONS.map(q => `
+                <div class="question-item">
+                    <div class="q-content">${q.content}</div>
+                    <div class="q-meta">
+                        主题: ${THEMES.find(t => t.id === q.theme)?.name} |
+                        难度: ${q.difficulty === 'easy' ? '简单' : q.difficulty === 'medium' ? '中等' : '困难'}
+                    </div>
+                    <div class="q-meta">答案: ${q.answer} | ${q.explanation.substring(0, 30)}...</div>
+                </div>
+            `).join('');
+        }
+
+        function loadAdminThemes() {
+            const content = document.getElementById('adminContent');
+            content.innerHTML = THEMES.map(t => {
+                const count = QUESTIONS.filter(q => q.theme === t.id).length;
+                return `
+                    <div class="question-item">
+                        <div class="q-content">${t.icon} ${t.name}</div>
+                        <div class="q-meta">题目数量: ${count}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showAddQuestionForm() {
+            const content = document.getElementById('adminContent');
+            content.innerHTML = `
+                <div class="form-group">
+                    <label>题目内容</label>
+                    <textarea class="form-control" id="newQContent" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>主题</label>
+                    <select class="form-control" id="newQTheme">
+                        ${THEMES.map(t => `<option value="${t.id}">${t.icon} ${t.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>难度</label>
+                    <select class="form-control" id="newQDifficulty">
+                        <option value="easy">简单</option>
+                        <option value="medium">中等</option>
+                        <option value="hard">困难</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>选项A</label>
+                    <input type="text" class="form-control" id="newQOptA">
+                </div>
+                <div class="form-group">
+                    <label>选项B</label>
+                    <input type="text" class="form-control" id="newQOptB">
+                </div>
+                <div class="form-group">
+                    <label>选项C</label>
+                    <input type="text" class="form-control" id="newQOptC">
+                </div>
+                <div class="form-group">
+                    <label>选项D</label>
+                    <input type="text" class="form-control" id="newQOptD">
+                </div>
+                <div class="form-group">
+                    <label>正确答案</label>
+                    <select class="form-control" id="newQAnswer">
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>解析</label>
+                    <textarea class="form-control" id="newQExplanation" rows="2"></textarea>
+                </div>
+                <button class="btn btn-primary w-100" onclick="addQuestion()">添加题目</button>
+            `;
+        }
+
+        function addQuestion() {
+            const content = document.getElementById('newQContent').value.trim();
+            const theme = document.getElementById('newQTheme').value;
+            const difficulty = document.getElementById('newQDifficulty').value;
+            const optA = document.getElementById('newQOptA').value.trim();
+            const optB = document.getElementById('newQOptB').value.trim();
+            const optC = document.getElementById('newQOptC').value.trim();
+            const optD = document.getElementById('newQOptD').value.trim();
+            const answer = document.getElementById('newQAnswer').value;
+            const explanation = document.getElementById('newQExplanation').value.trim();
+
+            if (!content || !optA || !optB || !optC || !optD || !explanation) {
+                showToast('请填写完整信息');
+                return;
+            }
+
+            const newQ = {
+                id: 'Q' + Date.now(),
+                theme,
+                difficulty,
+                type: 'single',
+                content,
+                options: [
+                    { key: 'A', value: optA },
+                    { key: 'B', value: optB },
+                    { key: 'C', value: optC },
+                    { key: 'D', value: optD }
+                ],
+                answer,
+                explanation,
+                videoUrl: ''
+            };
+
+            QUESTIONS.push(newQ);
+            showToast('题目添加成功');
+            loadAdminQuestions();
+        }
+
+        // ==================== 工具函数 ====================
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        // ==================== 初始化 ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            initChannel();
+            initRadioGroup('questionCountGroup', 'questionCount');
+            initRadioGroup('answerTimeGroup', 'answerTime');
+
+            // 尝试自动恢复房间
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('quiz_')) {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    if (data.roomData && data.roomData.hostId === state.playerId) {
+                        state.room = data.roomData;
+                        state.players = data.roomData.players;
+                        showWaiting();
+                        break;
+                    }
+                }
+            }
+        });
+
+        // 离开页面时清理
+        window.addEventListener('beforeunload', () => {
+            if (state.room && state.playerId) {
+                broadcast('player_left', { roomId: state.room.id, playerId: state.playerId });
+            }
+        });
+    </script>
+</body>
+</html>
