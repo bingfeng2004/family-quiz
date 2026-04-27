@@ -1631,7 +1631,8 @@
                 <div class="sd-host-bar" id="sdHostBar">
                     <button type="button" class="sd-big-btn sd-big-prev" onclick="sdPrevQuestion()">◀ 上一题</button>
                     <button type="button" class="sd-big-btn sd-big-next" id="sdNextBtn" onclick="sdNextQuestion()">▶ 下一题</button>
-                    <button type="button" class="sd-big-btn sd-big-end" onclick="sdEndGame()">🏁 结束游戏</button>
+                    <button type="button" class="sd-big-btn sd-big-end" style="background:#F59E0B;" onclick="sdFinishRound()">⏹️ 结束本局</button>
+                    <button type="button" class="sd-big-btn sd-big-end" onclick="sdDismissRoom()">🏁 结束游戏</button>
                 </div>
 
                 <!-- 答案公布区 -->
@@ -1758,7 +1759,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.27.4';
+        const APP_VERSION = '2026.04.28.1';
 
         let isSupabaseConnected = false;
 
@@ -3090,16 +3091,55 @@
             }
         }
 
-        async function sdEndGame() {
+        // 结束本局：房间回归空闲池，可让其他玩家进入
+        async function sdFinishRound() {
+            if (!confirm('确定结束本局？房间将回归空闲池，其他玩家可进入继续游戏。')) return;
+            
+            sdClearAutoTimer();
+            state.gameState = 'ended';
+            
+            if (isSupabaseConnected) {
+                // 保存玩家得分
+                await savePlayersToCloud();
+                // 房间状态改为 waiting（空闲可加入）
+                await supabase.from('rooms').update({ status: 'waiting' }).eq('id', state.room.id);
+            }
+            
+            // 重置游戏状态，供下一局使用
+            state.currentQuestionIndex = 0;
+            state.buzzerLocked = false;
+            state.buzzerWinnerId = null;
+            state.buzzerWinnerName = null;
+            state.buzzerWinnerTime = null;
+            state.answers = {};
+            state.players.forEach(p => p.score = 0);
+            
+            showToast('本局结束，房间已回归空闲池');
+            unsubscribeRoom();
+            showScreen('homeScreen');
+        }
+
+        // 结束游戏：解散房间
+        async function sdDismissRoom() {
+            if (!confirm('确定结束游戏？房间将解散，所有玩家将退出。')) return;
+            
             sdClearAutoTimer();
             state.gameState = 'finished';
+            
             if (isSupabaseConnected) {
-                await supabase.from('rooms').update({ status: 'ended' }).eq('id', state.room.id);
                 await savePlayersToCloud();
+                // 房间状态改为 dismissed（解散）
+                await supabase.from('rooms').update({ status: 'dismissed' }).eq('id', state.room.id);
             }
+            
             unsubscribeRoom();
             showScreen('resultScreen');
             showFinalResult(state.players.sort((a, b) => b.score - a.score));
+        }
+
+        // 兼容旧调用
+        async function sdEndGame() {
+            sdDismissRoom();
         }
 
         // ==================== 抢答器屏幕（玩家） ====================
@@ -4324,11 +4364,12 @@
                 </div>
             `).join('');
 
-            // 房主显示"再来一局"按钮
+            // 房主显示"再来一局"按钮（房间未解散时）
             const isHost = state.room && (state.room.hostId === state.userId || state.room.host_id === state.userId);
+            const roomDismissed = state.room && state.room.status === 'dismissed';
             const playAgainBtn = document.getElementById('playAgainBtn');
             if (playAgainBtn) {
-                playAgainBtn.style.display = isHost ? 'block' : 'none';
+                playAgainBtn.style.display = (isHost && !roomDismissed) ? 'block' : 'none';
             }
         }
 
