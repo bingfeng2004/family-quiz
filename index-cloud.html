@@ -1231,9 +1231,14 @@
                         <span style="color:#374151;font-size:14px;">👤 <span id="userStatusName"></span></span>
                         <button onclick="showLogoutConfirm()" style="margin-left:12px;background:#EF4444;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">退出</button>
                     </div>
-                    <div id="loginPrompt" style="background:#EEF2FF;border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:center;">
-                        <span style="color:#4F46E5;font-size:13px;">登录后可保存战绩，同步排行榜</span>
-                        <button onclick="showLoginScreen()" style="margin-left:12px;background:#4F46E5;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;">登录/注册</button>
+                    <div id="loginPrompt" style="display:none;background:#EEF2FF;border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:center;">
+                        <span style="color:#4F46E5;font-size:13px;">登录后可保存战绩，同步排行榜</span><br>
+                        <button onclick="showLoginScreen()" style="margin-top:8px;background:#4F46E5;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;">📱 登录/注册</button>
+                        <button onclick="anonymousLogin()" style="margin-top:8px;margin-left:8px;background:#6B7280;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;">👁️ 游客旁观</button>
+                    </div>
+                    <div id="visitorPrompt" style="display:none;background:#FEF3C7;border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:center;">
+                        <span style="color:#92400E;font-size:13px;">👁️ 游客模式 - 可旁观房间，无法参与游戏</span><br>
+                        <button onclick="showLoginScreen()" style="margin-top:8px;background:#4F46E5;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;">📱 登录参与游戏</button>
                     </div>
 
                     <button type="button" class="btn-primary-custom btn-create" onclick="showCreateRoom()">
@@ -1314,7 +1319,7 @@
                 <h4 class="mb-4"><i class="bi bi-arrow-left" onclick="showHome()" style="cursor:pointer"></i> 创建房间</h4>
                 <div class="form-group">
                     <label>你的昵称</label>
-                    <input type="text" class="form-control" id="createNickname" placeholder="请输入昵称" maxlength="10">
+                    <input type="text" class="form-control" id="createNickname" placeholder="请先登录" maxlength="10" readonly style="background:#F3F4F6;">
                 </div>
                 <div class="form-group">
                     <label>游戏模式</label>
@@ -1362,7 +1367,7 @@
                 <!-- 昵称输入 -->
                 <div class="form-group">
                     <label>你的昵称</label>
-                    <input type="text" class="form-control" id="joinNickname" placeholder="请输入昵称" maxlength="10">
+                    <input type="text" class="form-control" id="joinNickname" placeholder="请先登录" maxlength="10" readonly style="background:#F3F4F6;">
                 </div>
 
                 <!-- 房间列表 -->
@@ -1753,7 +1758,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.27.3';
+        const APP_VERSION = '2026.04.27.4';
 
         let isSupabaseConnected = false;
 
@@ -1777,18 +1782,69 @@
         function updateUserStatusDisplay() {
             const phone = localStorage.getItem(USER_PHONE_KEY);
             const nickname = localStorage.getItem(USER_NAME_KEY);
+            const isVisitor = localStorage.getItem('is_visitor') === 'true';
             const userBar = document.getElementById('userStatusBar');
             const loginPrompt = document.getElementById('loginPrompt');
+            const visitorPrompt = document.getElementById('visitorPrompt');
             const userNameEl = document.getElementById('userStatusName');
 
             if (phone && nickname) {
+                // 已登录用户
                 userBar.style.display = 'block';
                 loginPrompt.style.display = 'none';
+                visitorPrompt.style.display = 'none';
                 userNameEl.textContent = nickname + ' (' + phone + ')';
+            } else if (isVisitor) {
+                // 游客模式
+                userBar.style.display = 'none';
+                loginPrompt.style.display = 'none';
+                visitorPrompt.style.display = 'block';
             } else {
+                // 未登录
                 userBar.style.display = 'none';
                 loginPrompt.style.display = 'block';
+                visitorPrompt.style.display = 'none';
             }
+
+            // 更新昵称输入框
+            updateNicknameInputs();
+        }
+
+        // 更新昵称输入框
+        function updateNicknameInputs() {
+            const nickname = localStorage.getItem(USER_NAME_KEY) || '';
+            const isVisitor = localStorage.getItem('is_visitor') === 'true';
+
+            const createNickname = document.getElementById('createNickname');
+            const joinNickname = document.getElementById('joinNickname');
+
+            if (createNickname) {
+                createNickname.value = nickname;
+                createNickname.placeholder = isVisitor ? '游客模式' : (nickname ? nickname : '请先登录');
+                createNickname.readOnly = true;
+                createNickname.style.background = '#F3F4F6';
+            }
+
+            if (joinNickname) {
+                joinNickname.value = nickname;
+                joinNickname.placeholder = isVisitor ? '游客模式' : (nickname ? nickname : '请先登录');
+                joinNickname.readOnly = true;
+                joinNickname.style.background = '#F3F4F6';
+            }
+        }
+
+        // 匿名登录
+        function anonymousLogin() {
+            const visitorId = 'visitor_' + Date.now();
+            const visitorNames = ['游客甲', '游客乙', '游客丙', '游客丁', '游客戊'];
+            const randomName = visitorNames[Math.floor(Math.random() * visitorNames.length)];
+
+            localStorage.setItem('is_visitor', 'true');
+            localStorage.setItem(USER_NAME_KEY, randomName);
+            localStorage.setItem(USER_TOKEN_KEY, visitorId);
+
+            showToast('已进入游客模式，可旁观房间');
+            updateUserStatusDisplay();
         }
 
         // 显示登录页面
@@ -1983,6 +2039,7 @@
             if (confirm('确定要退出登录吗？')) {
                 localStorage.removeItem(USER_PHONE_KEY);
                 localStorage.removeItem(USER_TOKEN_KEY);
+                localStorage.removeItem('is_visitor');
                 // 保留昵称，供下次快速登录
                 updateUserStatusDisplay();
                 showToast('已退出登录');
@@ -3283,6 +3340,13 @@
         // 创建房间
         async function createRoom() {
             console.log('[DEBUG] createRoom called');
+
+            // 检查是否为游客
+            if (localStorage.getItem('is_visitor') === 'true') {
+                showToast('游客无法创建房间，请先登录');
+                return;
+            }
+
             const nickname = document.getElementById('createNickname').value.trim();
             if (!nickname) { showToast('请输入昵称'); return; }
 
@@ -3380,15 +3444,23 @@
         async function joinRoom() {
             const code = document.getElementById('joinRoomCode').value.trim();
             const nickname = document.getElementById('joinNickname').value.trim();
+            const isVisitor = localStorage.getItem('is_visitor') === 'true';
 
             if (!code || code.length !== 6) { showToast('请输入6位房间号'); return; }
-            if (!nickname) { showToast('请输入昵称'); return; }
+
+            if (isVisitor) {
+                // 游客只能旁观
+                state.isSpectator = true;
+                state.playerName = nickname || '游客';
+            } else {
+                if (!nickname) { showToast('请输入昵称'); return; }
+            }
 
             // 复用已有身份或创建新身份
             if (!state.userId) {
-                state.userId = 'user_' + Date.now();
+                state.userId = isVisitor ? ('visitor_' + Date.now()) : ('user_' + Date.now());
             }
-            state.playerName = nickname;
+            state.playerName = nickname || '游客';
             saveUserIdentity();
 
             // 尝试使用本地广播加入房间
