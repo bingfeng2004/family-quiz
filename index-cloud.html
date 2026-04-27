@@ -1692,7 +1692,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.25.1';
+        const APP_VERSION = '2026.04.27.1';
 
         let isSupabaseConnected = false;
 
@@ -2205,7 +2205,7 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
         }
-        function showHome() { showScreen('homeScreen'); unsubscribeRoom(); loadHomeLeaderboard(); loadVisitCount(); }
+        function showHome() { hideJoinRoom(); showScreen('homeScreen'); unsubscribeRoom(); loadHomeLeaderboard(); loadVisitCount(); }
         function showCreateRoom() {
             showScreen('createRoomScreen');
             // 读取上次选择的主题/难度/设置，保留用户上次选择
@@ -2218,9 +2218,22 @@
             const mode = document.getElementById('createGameMode').value;
             state.gameMode = mode;
         }
+        let joinRoomRefreshInterval = null;
+
         function showJoinRoom() {
             showScreen('joinRoomScreen');
             loadJoinRoomList();
+            // 每5秒自动刷新房间列表
+            if (joinRoomRefreshInterval) clearInterval(joinRoomRefreshInterval);
+            joinRoomRefreshInterval = setInterval(loadJoinRoomList, 5000);
+        }
+
+        // 离开加入房间页面时停止刷新
+        function hideJoinRoom() {
+            if (joinRoomRefreshInterval) {
+                clearInterval(joinRoomRefreshInterval);
+                joinRoomRefreshInterval = null;
+            }
         }
 
         // 手动输入房间号时高亮匹配列表项
@@ -2241,12 +2254,13 @@
             }
 
             try {
+                // 显示所有活动房间：waiting, playing, ended（不包括 dismissed 和 finished）
                 const { data: rooms, error } = await supabase
                     .from('rooms')
                     .select('id, status, host_name, created_at, game_mode, theme_id')
-                    .in('status', ['waiting', 'playing'])
+                    .in('status', ['waiting', 'playing', 'ended'])
                     .order('created_at', { ascending: false })
-                    .limit(20);
+                    .limit(50);
 
                 if (error) {
                     console.error('[房间列表] 查询失败:', error);
@@ -2265,7 +2279,8 @@
 
                 const statusInfo = {
                     waiting: { label: '等待中', color: '#10B981', bg: '#D1FAE5', icon: 'bi-hourglass-split' },
-                    playing: { label: '游戏中', color: '#F59E0B', bg: '#FEF3C7', icon: 'bi-controller' }
+                    playing: { label: '游戏中', color: '#F59E0B', bg: '#FEF3C7', icon: 'bi-controller' },
+                    ended: { label: '已结束', color: '#6B7280', bg: '#F3F4F6', icon: 'bi-check-circle' }
                 };
 
                 listEl.innerHTML = rooms.map(r => {
