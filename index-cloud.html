@@ -1812,8 +1812,8 @@
                 return;
             }
 
-            // 生成4位验证码
-            const code = Math.floor(1000 + Math.random() * 9000).toString();
+            // 生成4位验证码（模拟：固定为123456）
+            const code = '123456';
             const expireTime = Date.now() + 60000; // 60秒后过期
 
             // 存储验证码（模拟）
