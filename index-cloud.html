@@ -4546,26 +4546,9 @@
                 else if (ua.includes('Chrome')) browser = 'Chrome';
                 else if (ua.includes('Firefox')) browser = 'Firefox';
                 else if (ua.includes('MicroMessenger')) browser = 'WeChat';
-                // 尝试通过 ipapi.co 获取 IP 和地理位置（免费，不需要 key）
-                let ip = '', city = '', region = '', country = '';
-                try {
-                    // 使用 Promise.race 兜底，超时 4s 后自动放弃
-                    const geoRes = await Promise.race([
-                        fetch('https://ipapi.co/json/'),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
-                    ]);
-                    if (geoRes && geoRes.ok) {
-                        const geo = await geoRes.json();
-                        ip = geo.ip || '';
-                        city = geo.city || '';
-                        region = geo.region || '';
-                        country = geo.country_name || '';
-                    }
-                } catch(e) { /* geo lookup failed silently */ }
-
                 // 写入数据库
                 await supabase.from('page_visits').insert({
-                    ip_address: ip,
+                    ip_address: '',  // 地理位置获取暂不可用
                     user_agent: ua.substring(0, 500),
                     device_type: deviceType,
                     browser,
