@@ -262,7 +262,14 @@
         }
         .option-item:active:not(.disabled) { transform: scale(0.97) translateZ(0); }
         .option-item:hover:not(.disabled) { border-color: var(--primary); background: rgba(102, 126, 234, 0.05); }
-        .option-item.selected { border-color: var(--primary); background: rgba(102, 126, 234, 0.1); }
+        .option-item.selected {
+            border-color: var(--primary);
+            border-width: 3px;
+            background: rgba(102, 126, 234, 0.18);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+            transform: scale(1.01) translateZ(0);
+        }
+        .option-item.selected .option-text { color: var(--primary); font-weight: 600; }
         .option-item.correct { border-color: var(--success); background: rgba(16, 185, 129, 0.1); }
         .option-item.wrong { border-color: var(--danger); background: rgba(239, 68, 68, 0.1); }
         .option-item.disabled { cursor: not-allowed; opacity: 0.6; }
@@ -276,6 +283,7 @@
             justify-content: center;
             font-weight: 700;
             margin-right: 12px;
+            flex-shrink: 0;
         }
         .option-item.selected .option-key { background: var(--primary); color: white; }
         .option-item.correct .option-key { background: var(--success); color: white; }
@@ -1285,10 +1293,11 @@
                         <label>验证码</label>
                         <div style="display:flex;gap:8px;">
                             <input type="text" class="form-control" id="loginCode" placeholder="请输入验证码" maxlength="6" style="flex:1;">
-                            <button type="button" id="sendCodeBtn" onclick="sendVerifyCode()" style="background:#4F46E5;color:white;border:none;border-radius:8px;padding:8px 14px;font-size:13px;white-space:nowrap;cursor:pointer;">
+                            <button type="button" id="sendCodeBtn" onclick="sendVerifyCode()" style="display:none;">
                                 发送验证码
                             </button>
                         </div>
+                        <p style="color:#9CA3AF;font-size:12px;margin-top:4px;">测试期验证码固定为 123456</p>
                     </div>
                     <button type="button" class="btn-primary-custom" onclick="verifyCode()" style="width:100%;margin-top:8px;background:#4F46E5;">
                         验证
@@ -1693,6 +1702,7 @@
                     <div class="admin-tab active" id="tabRooms" onclick="switchAdminTab('rooms')">房间管理</div>
                     <div class="admin-tab" id="tabQuestions" onclick="switchAdminTab('questions')">题库管理</div>
                     <div class="admin-tab" id="tabStats" onclick="switchAdminTab('stats')">数据统计</div>
+                    <div class="admin-tab" id="tabUsers" onclick="switchAdminTab('users')">用户管理</div>
                     <div class="admin-tab" id="tabVisits" onclick="switchAdminTab('visits')">访问统计</div>
                 </div>
 
@@ -1736,6 +1746,26 @@
                     </div>
                 </div>
 
+                <!-- 用户管理 -->
+                <div id="adminUsersPanel" style="display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 12px;">
+                        <span style="font-weight:600;color:#374151;">👥 注册用户</span>
+                        <button type="button" class="btn btn-sm" style="background:#3B82F6;color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;" onclick="loadAdminUsers()">🔄 刷新</button>
+                    </div>
+                    <div style="display:flex;gap:12px;margin-bottom:16px;">
+                        <div class="admin-visit-total" style="flex:1;">
+                            <div class="avt-num" id="adminTotalUsers">--</div>
+                            <div class="avt-label">注册总人数</div>
+                        </div>
+                        <div class="admin-visit-total" style="flex:1;">
+                            <div class="avt-num" id="adminTodayUsers">--</div>
+                            <div class="avt-label">今日新增</div>
+                        </div>
+                    </div>
+                    <div style="font-weight:600;color:#374151;margin-bottom:8px;font-size:13px;">用户列表</div>
+                    <div id="adminUsersList" style="max-height:420px;overflow-y:auto;"></div>
+                </div>
+
                 <!-- 访问统计 -->
                 <div id="adminVisitsPanel" style="display:none;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 12px;">
@@ -1759,7 +1789,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.28.1';
+        const APP_VERSION = '2026.04.28.2';
 
         let isSupabaseConnected = false;
 
@@ -1854,7 +1884,11 @@
             document.getElementById('loginStep1').style.display = 'block';
             document.getElementById('loginStep2').style.display = 'none';
             document.getElementById('loginPhone').value = localStorage.getItem(USER_PHONE_KEY) || '';
-            document.getElementById('loginCode').value = '';
+            // 测试期预填验证码
+            document.getElementById('loginCode').value = '123456';
+            // 预存验证码到 localStorage（永久有效）
+            localStorage.setItem(VERIFY_CODE_KEY, '123456');
+            localStorage.setItem(VERIFY_EXPIRE_KEY, (Date.now() + 365 * 24 * 3600 * 1000).toString());
             document.getElementById('regNickname').value = '';
         }
 
@@ -1912,7 +1946,9 @@
             const savedPhone = localStorage.getItem(VERIFY_PHONE_KEY);
             const expireTime = parseInt(localStorage.getItem(VERIFY_EXPIRE_KEY) || '0');
 
-            if (inputCode !== savedCode || phone !== savedPhone || Date.now() > expireTime) {
+            // 测试期：123456 为万能码，无需绑定手机号校验
+            const isTestCode = inputCode === '123456';
+            if (!isTestCode && (inputCode !== savedCode || phone !== savedPhone || Date.now() > expireTime)) {
                 showToast('验证码错误或已过期');
                 return;
             }
@@ -1921,7 +1957,7 @@
             if (isSupabaseConnected) {
                 const { data: existingUser } = await supabase
                     .from('users')
-                    .select('id, nickname')
+                    .select('id, nickname, login_count')
                     .eq('phone', phone)
                     .single();
 
@@ -1930,6 +1966,9 @@
                     localStorage.setItem(USER_PHONE_KEY, phone);
                     localStorage.setItem(USER_NAME_KEY, existingUser.nickname);
                     localStorage.setItem(USER_TOKEN_KEY, existingUser.id);
+                    localStorage.removeItem('is_visitor');  // 清除游客标志
+                    // 递增登录次数
+                    supabase.from('users').update({ login_count: (existingUser.login_count || 0) + 1 }).eq('id', existingUser.id).then(() => {});
                     showToast('登录成功！');
                     updateUserStatusDisplay();
                     showHome();
@@ -2024,6 +2063,7 @@
             localStorage.setItem(USER_PHONE_KEY, phone);
             localStorage.setItem(USER_NAME_KEY, nickname);
             localStorage.setItem(USER_TOKEN_KEY, newUser.id);
+            localStorage.removeItem('is_visitor');  // 清除游客标志
 
             // 清理临时验证码
             localStorage.removeItem(VERIFY_CODE_KEY);
@@ -2562,6 +2602,7 @@
         function showHome() { hideJoinRoom(); showScreen('homeScreen'); unsubscribeRoom(); loadHomeLeaderboard(); loadVisitCount(); }
         function showCreateRoom() {
             showScreen('createRoomScreen');
+            updateNicknameInputs();  // 刷新昵称，确保登录状态最新
             // 读取上次选择的主题/难度/设置，保留用户上次选择
             const modeSelect = document.getElementById('createGameMode');
             if (modeSelect) {
@@ -4400,23 +4441,19 @@
                 return;
             }
             try {
-                let data = [];
-                try {
-                    const { data: rpcData } = await supabase.rpc('get_leaderboard', { limit_count: 5 });
-                    data = rpcData || [];
-                } catch(e) {
-                    const { data: raw } = await supabase
-                        .from('player_stats').select('*')
-                        .order('total_score', { ascending: false }).limit(5);
-                    data = raw || [];
-                }
-                if (data.length === 0) {
+                const { data, error } = await supabase
+                    .from('player_stats')
+                    .select('od_id, nickname, total_score, games_played, games_won')
+                    .order('total_score', { ascending: false })
+                    .limit(5);
+                const list = data || [];
+                if (list.length === 0) {
                     document.getElementById('homeLeaderboardList').innerHTML =
                         '<div class="hlb-loading" style="color:#9CA3AF;">暂无数据，成为第一个上榜玩家吧！</div>';
                     return;
                 }
                 const medals = ['🥇', '🥈', '🥉', '4', '5'];
-                document.getElementById('homeLeaderboardList').innerHTML = data.map((u, i) => `
+                document.getElementById('homeLeaderboardList').innerHTML = list.map((u, i) => `
                     <div class="hlb-item ${u.od_id === state.userId ? 'current' : ''}">
                         <span class="rank ${['gold','silver','bronze'][i] || ''}">${medals[i]}</span>
                         <span class="nickname">${u.nickname}</span>
@@ -4438,21 +4475,14 @@
                 return;
             }
 
-            // 获取排行榜 TOP 20
+            // 获取排行榜 TOP 20（直接从 player_stats 读取）
             let users = [];
-            try {
-                const { data, error } = await supabase.rpc('get_leaderboard', { limit_count: 20 });
-                if (error) throw error;
-                users = data || [];
-            } catch(e) {
-                // 降级：直接从 player_stats 读取
-                const { data: raw } = await supabase
-                    .from('player_stats')
-                    .select('*')
-                    .order('total_score', { ascending: false })
-                    .limit(20);
-                users = raw || [];
-            }
+            const { data: raw } = await supabase
+                .from('player_stats')
+                .select('od_id, nickname, total_score, games_played, games_won')
+                .order('total_score', { ascending: false })
+                .limit(20);
+            users = raw || [];
 
             if (users && users.length > 0) {
                 const medals = ['🥇', '🥈', '🥉', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'];
@@ -4484,8 +4514,14 @@
         }
 
         // ==================== 管理员界面 ====================
+        const ADMIN_PHONES = ['18103465085', '18103465086'];
         let adminDefaultTab = 'visits'; // 底部访问计数器点击进来默认显示访问统计
         function showAdmin(tab) {
+            const phone = localStorage.getItem(USER_PHONE_KEY);
+            if (!phone || !ADMIN_PHONES.includes(phone)) {
+                showToast('⛔ 无权限，仅管理员可访问');
+                return;
+            }
             showScreen('adminScreen');
             if (!tab) tab = adminDefaultTab;
             switchAdminTab(tab);
@@ -4499,10 +4535,12 @@
             document.getElementById('adminRoomsPanel').style.display = tab === 'rooms' ? '' : 'none';
             document.getElementById('adminQuestionsPanel').style.display = tab === 'questions' ? '' : 'none';
             document.getElementById('adminStatsPanel').style.display = tab === 'stats' ? '' : 'none';
+            document.getElementById('adminUsersPanel').style.display = tab === 'users' ? '' : 'none';
             document.getElementById('adminVisitsPanel').style.display = tab === 'visits' ? '' : 'none';
             if (tab === 'rooms') loadAdminRooms();
             if (tab === 'questions') loadAdminQuestions();
             if (tab === 'stats') loadAdminStats();
+            if (tab === 'users') loadAdminUsers();
             if (tab === 'visits') loadAdminVisits();
         }
 
@@ -4612,18 +4650,16 @@
                 document.getElementById('adminLeaderboard').innerHTML = '<div style="color:#9CA3AF;">请先连接数据库</div>';
                 return;
             }
-            let data = [];
-            try {
-                const res = await supabase.rpc('get_leaderboard', { limit_count: 10 });
-                data = res.data || [];
-            } catch(e) {
-                const raw = await supabase.from('player_stats').select('*').order('total_score', { ascending: false }).limit(10);
-                data = raw.data || [];
-            }
+            const { data } = await supabase
+                .from('player_stats')
+                .select('od_id, nickname, total_score, games_played, games_won')
+                .order('total_score', { ascending: false })
+                .limit(10);
+            const list = data || [];
             const medals = ['🥇', '🥈', '🥉', '4', '5', '6', '7', '8', '9', '10'];
-            document.getElementById('adminLeaderboard').innerHTML = data.length === 0
+            document.getElementById('adminLeaderboard').innerHTML = list.length === 0
                 ? '<div style="color:#9CA3AF;text-align:center;padding:20px;">暂无数据</div>'
-                : data.map((u, i) => `
+                : list.map((u, i) => `
                     <div class="admin-stat-card">
                         <div style="display:flex;align-items:center;gap:10px;">
                             <span style="font-size:20px;">${medals[i]}</span>
@@ -4640,8 +4676,66 @@
                 `).join('');
         }
 
+        // ==================== 用户管理 ====================
+        async function loadAdminUsers() {
+            if (!isSupabaseConnected) {
+                document.getElementById('adminUsersList').innerHTML = '<div style="color:#9CA3AF;text-align:center;padding:20px;">请先连接数据库</div>';
+                return;
+            }
+            document.getElementById('adminUsersList').innerHTML = '<div style="color:#9CA3AF;text-align:center;padding:20px;">加载中...</div>';
+            try {
+                const { data: users, error } = await supabase
+                    .from('users')
+                    .select('id, phone, nickname, registered_at, login_count')
+                    .order('registered_at', { ascending: false })
+                    .limit(200);
+                if (error) throw error;
+
+                const list = users || [];
+                const today = new Date().toISOString().slice(0, 10);
+                const todayCount = list.filter(u => u.registered_at && u.registered_at.startsWith(today)).length;
+
+                document.getElementById('adminTotalUsers').textContent = list.length;
+                document.getElementById('adminTodayUsers').textContent = todayCount;
+
+                if (list.length === 0) {
+                    document.getElementById('adminUsersList').innerHTML = '<div style="color:#9CA3AF;text-align:center;padding:20px;">暂无注册用户</div>';
+                    return;
+                }
+
+                document.getElementById('adminUsersList').innerHTML = `
+                    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                        <thead>
+                            <tr style="background:#F3F4F6;color:#6B7280;">
+                                <th style="padding:8px 6px;text-align:left;border-bottom:1px solid #E5E7EB;">#</th>
+                                <th style="padding:8px 6px;text-align:left;border-bottom:1px solid #E5E7EB;">昵称</th>
+                                <th style="padding:8px 6px;text-align:left;border-bottom:1px solid #E5E7EB;">手机号</th>
+                                <th style="padding:8px 6px;text-align:left;border-bottom:1px solid #E5E7EB;">注册时间</th>
+                                <th style="padding:8px 6px;text-align:center;border-bottom:1px solid #E5E7EB;">登录次数</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${list.map((u, i) => {
+                                const dt = u.registered_at
+                                    ? new Date(u.registered_at).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+                                    : '-';
+                                const isAdmin = ADMIN_PHONES.includes(u.phone);
+                                return `<tr style="border-bottom:1px solid #F3F4F6;${i % 2 !== 0 ? 'background:#FAFAFA;' : ''}">
+                                    <td style="padding:7px 6px;color:#9CA3AF;">${i + 1}</td>
+                                    <td style="padding:7px 6px;font-weight:500;color:#1F2937;">${u.nickname || '-'}${isAdmin ? ' 👑' : ''}</td>
+                                    <td style="padding:7px 6px;color:#374151;font-family:monospace;">${u.phone || '-'}</td>
+                                    <td style="padding:7px 6px;color:#6B7280;">${dt}</td>
+                                    <td style="padding:7px 6px;text-align:center;color:#4F46E5;font-weight:600;">${u.login_count || 0}</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>`;
+            } catch(e) {
+                document.getElementById('adminUsersList').innerHTML = `<div style="color:#EF4444;text-align:center;padding:20px;">加载失败：${e.message}</div>`;
+            }
+        }
+
         // ==================== 访问统计 ====================
-        // 页面加载时：记录访问 + 更新计数
         async function trackPageVisit() {
             if (!isSupabaseConnected) return;
             try {
