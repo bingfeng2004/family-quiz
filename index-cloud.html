@@ -2649,11 +2649,11 @@
             }
 
             try {
-                // 显示所有活动房间：waiting, playing, ended（不包括 dismissed 和 finished）
+                // 只显示活跃房间（waiting/playing），已结束的房间不展示，但保留手动输入
                 const { data: rooms, error } = await supabase
                     .from('rooms')
                     .select('id, status, host_name, created_at, game_mode, theme_id')
-                    .in('status', ['waiting', 'playing', 'ended'])
+                    .in('status', ['waiting', 'playing'])
                     .order('created_at', { ascending: false })
                     .limit(50);
 
@@ -2681,7 +2681,8 @@
                 listEl.innerHTML = rooms.map(r => {
                     const s = statusInfo[r.status] || { label: r.status, color: '#6B7280', bg: '#F3F4F6', icon: 'bi-question' };
                     const modeLabel = r.game_mode === 'shared' ? '共享模式' : (r.game_mode === 'independent' ? '独立模式' : '');
-                    const timeDiff = r.created_at ? Math.floor((Date.now() - new Date(r.created_at)) / 60000) : 0;
+                    // 统一使用 UTC 时间计算差值，避免浏览器时区偏差
+                    const timeDiff = r.created_at ? Math.floor((Date.now() - new Date(r.created_at + 'Z').getTime()) / 60000) : 0;
                     const timeStr = timeDiff < 1 ? '刚刚创建' : timeDiff < 60 ? `${timeDiff}分钟前` : `${Math.floor(timeDiff/60)}小时前`;
                     return `
                     <div class="join-room-item" data-room-id="${r.id}" onclick="selectJoinRoom('${r.id}')"
@@ -4582,7 +4583,7 @@
                         <div class="admin-room-meta">
                             ${statusLabels[r.status] || r.status} ·
                             主题:${r.theme_id || '未知'} ·
-                            ${new Date(r.created_at).toLocaleString('zh-CN')}
+                            ${new Date(r.created_at + 'Z').toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit' })}
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
@@ -4692,8 +4693,9 @@
                 if (error) throw error;
 
                 const list = users || [];
-                const today = new Date().toISOString().slice(0, 10);
-                const todayCount = list.filter(u => u.registered_at && u.registered_at.startsWith(today)).length;
+                // 使用中国时区获取今日日期字符串，避免跨天问题
+                const todaySH = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
+                const todayCount = list.filter(u => u.registered_at && new Date(u.registered_at).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' }) === todaySH).length;
 
                 document.getElementById('adminTotalUsers').textContent = list.length;
                 document.getElementById('adminTodayUsers').textContent = todayCount;
@@ -4717,7 +4719,7 @@
                         <tbody>
                             ${list.map((u, i) => {
                                 const dt = u.registered_at
-                                    ? new Date(u.registered_at).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+                                    ? new Date(u.registered_at + 'Z').toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit' })
                                     : '-';
                                 const isAdmin = ADMIN_PHONES.includes(u.phone);
                                 return `<tr style="border-bottom:1px solid #F3F4F6;${i % 2 !== 0 ? 'background:#FAFAFA;' : ''}">
