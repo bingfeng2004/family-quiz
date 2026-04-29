@@ -1223,6 +1223,10 @@
     </style>
 </head>
 <body>
+    <!-- 背景音乐（loop=true自动循环，controls默认隐藏，由界面按钮控制） -->
+    <!-- TODO: 替换为自有版权音乐URL -->
+    <audio id="bgMusic" loop preload="none"
+        src="https://cdn.pixabay.com/audio/2022/03/15/audio_c85d2a24a0.mp3"></audio>
     <div class="container">
         <div class="card">
             <!-- 首页 -->
@@ -1409,9 +1413,14 @@
 
             <!-- 等待大厅 -->
             <div id="waitingScreen" class="screen">
-                <div class="room-code">
-                    <div class="label">房间号</div>
-                    <div class="code" id="displayRoomCode">------</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#F3F4F6;border-radius:10px;margin-bottom:12px;">
+                    <div>
+                        <div style="font-size:11px;color:#9CA3AF;">房间号</div>
+                        <div style="font-size:22px;font-weight:700;color:#1F2937;letter-spacing:3px;" id="displayRoomCode">------</div>
+                    </div>
+                    <button type="button" id="waMusicBtn" onclick="toggleMusic()" style="background:#4F46E5;border:none;border-radius:20px;color:#fff;font-size:12px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                        <span id="waMusicIcon">🔇</span><span id="waMusicLabel">音乐关</span>
+                    </button>
                 </div>
                 <div class="player-list" id="playerList"></div>
                 <div class="share-hint">分享房间号给家人，一起加入吧！</div>
@@ -1422,12 +1431,17 @@
 
             <!-- 游戏界面 -->
             <div id="gameScreen" class="screen">
-                <div class="game-header">
-                    <div class="question-counter" id="questionCounter">第 1/10 题</div>
-                    <div class="timer" id="timer">
-                        <i class="bi bi-clock"></i>
-                        <span id="timerValue">15</span>
+                <div class="game-header" style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="question-counter" id="questionCounter">第 1/10 题</div>
+                        <div class="timer" id="timer">
+                            <i class="bi bi-clock"></i>
+                            <span id="timerValue">15</span>
+                        </div>
                     </div>
+                    <button type="button" id="gmMusicBtn" onclick="toggleMusic()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;color:#fff;font-size:11px;padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                        <span id="gmMusicIcon">🔇</span><span id="gmMusicLabel">音乐</span>
+                    </button>
                 </div>
                 <div class="progress-bar">
                     <div class="fill" id="progressFill" style="width: 100%"></div>
@@ -1529,6 +1543,9 @@
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span class="sd-badge sd-badge-shared">📺 共享模式</span>
                         <span class="sd-theme-tag" id="sdThemeTag2">科学</span>
+                        <button type="button" id="sdMusicBtn" onclick="toggleMusic()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;color:#fff;font-size:12px;padding:3px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                            <span id="sdMusicIcon">🔇</span><span id="sdMusicLabel">音乐关</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1657,6 +1674,9 @@
                     <div class="bz-room-info">
                         <span id="bzRoomCode">------</span>
                         <span id="bzModeLabel" style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:10px;font-size:11px;">共享模式</span>
+                        <button type="button" id="bzMusicBtn" onclick="toggleMusic()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;color:#fff;font-size:11px;padding:2px 8px;cursor:pointer;display:flex;align-items:center;gap:3px;">
+                            <span id="bzMusicIcon">🔇</span><span id="bzMusicLabel">音乐</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1789,7 +1809,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.28.3';
+        const APP_VERSION = '2026.04.29.1';
 
         let isSupabaseConnected = false;
 
@@ -1967,8 +1987,11 @@
                     localStorage.setItem(USER_NAME_KEY, existingUser.nickname);
                     localStorage.setItem(USER_TOKEN_KEY, existingUser.id);
                     localStorage.removeItem('is_visitor');  // 清除游客标志
-                    // 递增登录次数
-                    supabase.from('users').update({ login_count: (existingUser.login_count || 0) + 1 }).eq('id', existingUser.id).then(() => {});
+                    // 递增登录次数 + 记录最后登录时间
+                    supabase.from('users').update({
+                        login_count: (existingUser.login_count || 0) + 1,
+                        last_login_at: new Date().toISOString()
+                    }).eq('id', existingUser.id).then(() => {});
                     showToast('登录成功！');
                     updateUserStatusDisplay();
                     showHome();
@@ -2599,7 +2622,7 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
         }
-        function showHome() { hideJoinRoom(); showScreen('homeScreen'); unsubscribeRoom(); loadHomeLeaderboard(); loadVisitCount(); }
+        function showHome() { hideJoinRoom(); stopMusic(); showScreen('homeScreen'); unsubscribeRoom(); loadHomeLeaderboard(); loadVisitCount(); }
         function showCreateRoom() {
             showScreen('createRoomScreen');
             updateNicknameInputs();  // 刷新昵称，确保登录状态最新
@@ -2727,18 +2750,74 @@
             if (!nick.value) nick.focus();
         }
 
+        // ==================== 背景音乐控制 ====================
+        let musicEnabled = false;  // 音乐默认关闭
+
+        // 统一更新所有音乐开关按钮的显示状态
+        function updateMusicBtnUI() {
+            const iconOn  = '🔊';
+            const iconOff = '🔇';
+            const labelOn  = '音乐开';
+            const labelOff = '音乐关';
+            const icon  = musicEnabled ? iconOn  : iconOff;
+            const label = musicEnabled ? labelOn : labelOff;
+
+            ['sdMusicIcon', 'sdMusicLabel', 'bzMusicIcon', 'bzMusicLabel',
+             'waMusicIcon', 'waMusicLabel', 'gmMusicIcon', 'gmMusicLabel'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.textContent = id.endsWith('Label') ? label : icon;
+            });
+        }
+
+        // 切换音乐开关
+        function toggleMusic() {
+            musicEnabled = !musicEnabled;
+            updateMusicBtnUI();
+            if (musicEnabled) {
+                document.getElementById('bgMusic').play().catch(() => {
+                    musicEnabled = false;
+                    updateMusicBtnUI();
+                    showToast('音乐播放失败，请检查网络或点击页面后再试');
+                });
+            } else {
+                document.getElementById('bgMusic').pause();
+            }
+        }
+
+        // 根据游戏模式/身份自动触发音乐
+        function autoStartMusic() {
+            if (!musicEnabled) return;
+            document.getElementById('bgMusic').play().catch(() => {});
+        }
+
+        // 离开游戏界面时停止音乐
+        function stopMusic() {
+            document.getElementById('bgMusic').pause();
+            document.getElementById('bgMusic').currentTime = 0;
+        }
+
         function showWaiting() {
             console.log('[DEBUG] showWaiting called, roomId:', state.room?.id);
             showScreen('waitingScreen');
             document.getElementById('displayRoomCode').textContent = state.room.id;
             updatePlayerList();
             subscribeRoom();
+            // 对战模式默认开启音乐（共享模式由房主自行开关）
+            if (state.gameMode === 'versus') {
+                if (!musicEnabled) { musicEnabled = true; updateMusicBtnUI(); }
+                autoStartMusic();
+            }
             console.log('[DEBUG] showWaiting done');
         }
 
         function showGame() {
             showScreen('gameScreen');
             subscribeRoom();
+            // 对战模式游戏界面继续播放音乐
+            if (state.gameMode === 'versus' && musicEnabled) {
+                autoStartMusic();
+            }
         }
 
         // ==================== 共享大屏（主持人） ====================
@@ -2746,6 +2825,9 @@
             showScreen('sharedHostWaitScreen');
             state.gameState = 'shared_host_wait';
             subscribeRoom();
+            // 共享模式房主默认开启音乐
+            if (!musicEnabled) { musicEnabled = true; updateMusicBtnUI(); }
+            autoStartMusic();
             // 更新等待界面信息
             document.getElementById('sdRoomCode2').textContent = state.room.id || '------';
             document.getElementById('sdJoinCode').textContent = state.room.id || '------';
@@ -3191,6 +3273,7 @@
             state.questionStartTime = Date.now();
             bzUpdateUI();
             subscribeRoom();
+            // 共享模式玩家默认关闭音乐（旁观者如有音乐需求可手动开启）
         }
 
         function bzUpdateUI() {
@@ -4687,7 +4770,7 @@
             try {
                 const { data: users, error } = await supabase
                     .from('users')
-                    .select('id, phone, nickname, registered_at, login_count')
+                    .select('id, phone, nickname, registered_at, login_count, last_login_at')
                     .order('registered_at', { ascending: false })
                     .limit(200);
                 if (error) throw error;
@@ -4712,14 +4795,16 @@
                                 <th style="padding:8px 6px;text-align:left;border-bottom:1px solid #E5E7EB;">#</th>
                                 <th style="padding:8px 6px;text-align:left;border-bottom:1px solid #E5E7EB;">昵称</th>
                                 <th style="padding:8px 6px;text-align:left;border-bottom:1px solid #E5E7EB;">手机号</th>
-                                <th style="padding:8px 6px;text-align:left;border-bottom:1px solid #E5E7EB;">注册时间</th>
+                                <th style="padding:8px 6px;text-align:left;border-bottom:1px solid #E5E7EB;">最后登录</th>
                                 <th style="padding:8px 6px;text-align:center;border-bottom:1px solid #E5E7EB;">登录次数</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${list.map((u, i) => {
-                                const dt = u.registered_at
-                                    ? new Date(u.registered_at + 'Z').toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit' })
+                                // 优先用 last_login_at，否则降级用 registered_at
+                                const ts = u.last_login_at || u.registered_at;
+                                const dt = ts
+                                    ? new Date(ts).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit' })
                                     : '-';
                                 const isAdmin = ADMIN_PHONES.includes(u.phone);
                                 return `<tr style="border-bottom:1px solid #F3F4F6;${i % 2 !== 0 ? 'background:#FAFAFA;' : ''}">
@@ -4757,16 +4842,13 @@
                 else if (ua.includes('MicroMessenger')) browser = 'WeChat';
                 // 写入数据库
                 await supabase.from('page_visits').insert({
-                    ip_address: '',  // 地理位置获取暂不可用
+                    ip_address: '',
                     user_agent: ua.substring(0, 500),
                     device_type: deviceType,
                     browser,
                     screen_size: screenSize,
                     platform,
-                    language: lang,
-                    city,
-                    region,
-                    country
+                    language: lang
                 });
             } catch(e) {
                 console.log('[VISITS] track error:', e.message);
