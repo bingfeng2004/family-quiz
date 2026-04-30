@@ -4,6 +4,12 @@
 -- 请在 Supabase 控制台 SQL Editor 中执行
 -- ============================================
 
+-- 1. 插入主题
+INSERT INTO themes (id, name, icon, color, description)
+VALUES ('riddle', '猜谜语', '🧩', '#8B5CF6', '涵盖幼儿园到成人的趣味谜语，锻炼思维和想象力')
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. 插入题目
 INSERT INTO questions (id, theme_id, difficulty, type, content, options, answer, explanation) VALUES
 ('RD001', 'riddle', 'easy', 'single',
  '耳朵像蒲扇，身子像小山，鼻子长又长，帮人把活干。打一动物',

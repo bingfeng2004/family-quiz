@@ -4,6 +4,12 @@
 -- 请在 Supabase 控制台 SQL Editor 中执行
 -- ============================================
 
+-- 1. 插入主题
+INSERT INTO themes (id, name, icon, color, description)
+VALUES ('star', '猜明星', '🌟', '#F59E0B', '根据电视剧角色、经典台词或歌曲猜明星名字')
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. 插入题目
 INSERT INTO questions (id, theme_id, difficulty, type, content, options, answer, explanation) VALUES
 ('ST001', 'star', 'easy', 'single',
  '《还珠格格》中扮演小燕子的是谁？',
