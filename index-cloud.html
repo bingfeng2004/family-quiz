@@ -1928,7 +1928,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.30.1';
+        const APP_VERSION = '2026.04.30.2';
 
         let isSupabaseConnected = false;
 
@@ -2557,11 +2557,8 @@
                     state.settings = settings;
                     
                     // 从云端读取同一套题目
-                    let selectedQs = data.selected_questions;
-                    if (typeof selectedQs === 'string') {
-                        try { selectedQs = JSON.parse(selectedQs); } catch(e) { selectedQs = null; }
-                    }
-                    if (selectedQs && selectedQs.length > 0) {
+                    const selectedQs = parseSelectedQuestions(data.selected_questions);
+                    if (selectedQs) {
                         state.room.questions = selectedQs;
                     } else {
                         // 兼容旧房间
@@ -2908,6 +2905,7 @@
         function showWaiting() {
             console.log('[DEBUG] showWaiting called, roomId:', state.room?.id);
             showScreen('waitingScreen');
+            state.gameState = 'waiting';  // 明确标记等待状态
             document.getElementById('displayRoomCode').textContent = state.room.id;
             updatePlayerList();
             subscribeRoom();
@@ -2972,9 +2970,29 @@
 
         // 开始游戏
         async function sdStartGame() {
+            // 如果本地没有题目，先从云端加载
             if (!state.room.questions || state.room.questions.length === 0) {
-                showToast('题目加载中，请稍候...');
-                return;
+                showToast('正在加载题目...');
+                if (isSupabaseConnected) {
+                    const themeId = state.room.themeId || state.room.theme_id;
+                    const settings = typeof state.room.settings === 'string' ? JSON.parse(state.room.settings) : (state.room.settings || state.settings);
+                    const { data: cloudQs } = await supabase.from('questions').select('*').eq('theme_id', themeId);
+                    if (cloudQs && cloudQs.length > 0) {
+                        const shuffled = [...cloudQs].sort(() => Math.random() - 0.5);
+                        state.room.questions = shuffled.slice(0, settings.questionCount || 10).map(q => ({
+                            id: q.id, theme: q.theme_id, difficulty: q.difficulty,
+                            content: q.content, options: q.options, answer: q.answer,
+                            explanation: q.explanation
+                        }));
+                    } else {
+                        const local = QUESTIONS.filter(q => q.theme === themeId);
+                        state.room.questions = [...local].sort(() => Math.random() - 0.5).slice(0, (settings && settings.questionCount) || 10);
+                    }
+                }
+                if (!state.room.questions || state.room.questions.length === 0) {
+                    showToast('题目加载失败，请重试');
+                    return;
+                }
             }
             // 重置游戏状态
             state.currentQuestion = 0;
@@ -2985,14 +3003,20 @@
             state.questionStartTime = 0;
             state.snatchedPlayerId = '';
 
-            // 更新云端房间状态
+            // 更新云端房间状态，同时写入题目供玩家端同步
             if (isSupabaseConnected) {
+                const questionsForCloud = state.room.questions ? state.room.questions.map(q => ({
+                    id: q.id, theme: q.theme, difficulty: q.difficulty,
+                    content: q.content, options: q.options, answer: q.answer,
+                    explanation: q.explanation
+                })) : [];
                 await supabase.from('rooms').update({
                     status: 'playing',
                     current_question: 0,
                     buzzer_locked: false,
                     buzzer_player_id: '',
-                    snatched_player_id: ''
+                    snatched_player_id: '',
+                    selected_questions: JSON.stringify(questionsForCloud)
                 }).eq('id', state.room.id);
             }
 
@@ -3482,6 +3506,16 @@
             showToast(`抢答成功！用时 ${(elapsed / 1000).toFixed(2)} 秒`);
         }
 
+        // 统一解析 selected_questions 字段（兼容 JSONB 数组 和 JSON 字符串两种格式）
+        function parseSelectedQuestions(raw) {
+            if (!raw) return null;
+            if (Array.isArray(raw)) return raw.length > 0 ? raw : null;
+            if (typeof raw === 'string') {
+                try { const arr = JSON.parse(raw); return Array.isArray(arr) && arr.length > 0 ? arr : null; } catch(e) { return null; }
+            }
+            return null;
+        }
+
         // 轮询兜底：同步房间状态（改为500ms减少延迟）
         function startPolling() {
             stopPolling();
@@ -3491,14 +3525,9 @@
                     const { data } = await supabase.from('rooms').select('*').eq('id', state.room.id).single();
                     if (data) {
                         // 同步题目（对战模式下必须同步）
-                        let sq = data.selected_questions;
-                        if (typeof sq === 'string') {
-                            try { sq = JSON.parse(sq); } catch(e) { sq = null; }
-                        }
-                        if (sq && sq.length > 0) {
-                            if (!state.room.questions || state.room.questions.length === 0) {
-                                state.room.questions = sq;
-                            }
+                        const sq = parseSelectedQuestions(data.selected_questions);
+                        if (sq && (!state.room.questions || state.room.questions.length === 0)) {
+                            state.room.questions = sq;
                         }
                         handleRoomUpdate(data);
                     }
@@ -3786,11 +3815,8 @@
                 state.settings = settings;
                 
                 // 从云端读取同一套题目（房主抽取并保存的）
-                let selectedQs = data.selected_questions;
-                if (typeof selectedQs === 'string') {
-                    try { selectedQs = JSON.parse(selectedQs); } catch(e) { selectedQs = null; }
-                }
-                if (selectedQs && selectedQs.length > 0) {
+                const selectedQs = parseSelectedQuestions(data.selected_questions);
+                if (selectedQs) {
                     state.room.questions = selectedQs;
                 } else {
                     // 兼容旧房间：如果没有保存的题目，从本地题库获取
@@ -3850,9 +3876,12 @@
                 if (isHost) {
                     showSharedHostWait();  // 共享模式：先显示等待界面
                 } else {
+                    state.gameState = 'buzzer';
                     showBuzzerScreen();
                 }
             } else {
+                // 对战模式：明确标记等待状态
+                state.gameState = 'waiting';
                 showWaiting();
             }
             
@@ -4135,18 +4164,22 @@
             }
 
             // === 对战模式 ===
-            if (data.status === 'playing' && state.gameState !== 'playing') {
+            // 仅当玩家处于等待或空闲状态时才响应游戏开始（避免已在游戏中的房主重复处理）
+            if (data.status === 'playing' && (state.gameState === 'waiting' || state.gameState === 'idle')) {
                 state.room.status = 'playing';
                 state.currentQuestion = data.current_question || 0;
                 state.gameState = 'playing';
                 
-                // 同步题目（如果还没本地题目）
-                let sq = data.selected_questions;
-                if (typeof sq === 'string') {
-                    try { sq = JSON.parse(sq); } catch(e) { sq = null; }
-                }
-                if (sq && sq.length > 0) {
+                // 同步题目（优先云端题目，保证所有玩家用同一套题）
+                const sq = parseSelectedQuestions(data.selected_questions);
+                if (sq) {
                     state.room.questions = sq;
+                }
+                
+                // 确保有题目才进入游戏
+                if (!state.room.questions || state.room.questions.length === 0) {
+                    showToast('正在加载题目...');
+                    return;
                 }
                 
                 showGame();
