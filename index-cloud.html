@@ -1223,10 +1223,129 @@
     </style>
 </head>
 <body>
-    <!-- 背景音乐（loop=true自动循环，controls默认隐藏，由界面按钮控制） -->
-    <!-- TODO: 替换为自有版权音乐URL -->
-    <audio id="bgMusic" loop preload="none"
-        src="https://cdn.pixabay.com/audio/2022/03/15/audio_c85d2a24a0.mp3"></audio>
+    <!-- Web Audio API 背景音乐（无需外部URL） -->
+    <script>
+    // 简单的背景音乐生成器
+    let audioContext = null;
+    let musicGainNode = null;
+    let musicOscillators = [];
+    let musicPlaying = false;
+    
+    function initAudioContext() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            musicGainNode = audioContext.createGain();
+            musicGainNode.gain.value = 0.15;
+            musicGainNode.connect(audioContext.destination);
+        }
+        return audioContext;
+    }
+    
+    // 简单的和弦进行：C - G - Am - F
+    const chordSequence = [
+        [261.63, 329.63, 392.00],  // C
+        [392.00, 493.88, 587.33],  // G
+        [220.00, 261.63, 329.63],  // Am
+        [349.23, 440.00, 523.25]   // F
+    ];
+    
+    function playNote(freq, startTime, duration) {
+        const osc = audioContext.createOscillator();
+        const noteGain = audioContext.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        noteGain.gain.value = 0;
+        noteGain.gain.setValueAtTime(0, startTime);
+        noteGain.gain.linearRampToValueAtTime(0.08, startTime + 0.1);
+        noteGain.gain.linearRampToValueAtTime(0, startTime + duration);
+        osc.connect(noteGain);
+        noteGain.connect(musicGainNode);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+        musicOscillators.push(osc);
+    }
+    
+    function playBackgroundMusicLoop() {
+        if (!audioContext || !musicPlaying) return;
+        
+        // 清除之前的振荡器
+        musicOscillators.forEach(o => { try { o.stop(); } catch(e){} });
+        musicOscillators = [];
+        
+        const bpm = 80;
+        const beatDuration = 60 / bpm;
+        const chordDuration = beatDuration * 4;
+        const startTime = audioContext.currentTime + 0.1;
+        
+        // 播放4个小节的和弦
+        for (let i = 0; i < 4; i++) {
+            const chord = chordSequence[i];
+            chord.forEach(freq => {
+                playNote(freq, startTime + i * chordDuration, chordDuration * 0.9);
+            });
+            // 添加低音
+            playNote(chord[0] / 2, startTime + i * chordDuration, chordDuration * 0.8);
+        }
+        
+        // 添加旋律线条
+        const melodyNotes = [
+            { note: 523.25, start: 0, dur: 1 },
+            { note: 493.88, start: 1, dur: 0.5 },
+            { note: 440.00, start: 1.5, dur: 0.5 },
+            { note: 392.00, start: 2, dur: 1 },
+            { note: 349.23, start: 3, dur: 1 }
+        ];
+        melodyNotes.forEach(m => {
+            const osc = audioContext.createOscillator();
+            const melGain = audioContext.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = m.note;
+            const t = startTime + m.start * beatDuration;
+            melGain.gain.value = 0;
+            melGain.gain.setValueAtTime(0, t);
+            melGain.gain.linearRampToValueAtTime(0.05, t + 0.05);
+            melGain.gain.linearRampToValueAtTime(0, t + m.dur * beatDuration);
+            osc.connect(melGain);
+            melGain.connect(musicGainNode);
+            osc.start(t);
+            osc.stop(t + m.dur * beatDuration + 0.1);
+            musicOscillators.push(osc);
+        });
+        
+        // 循环播放
+        const loopDuration = 4 * chordDuration;
+        setTimeout(() => {
+            if (musicPlaying) playBackgroundMusicLoop();
+        }, loopDuration * 1000 - 200);
+    }
+    
+    function startMusic() {
+        initAudioContext();
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        musicPlaying = true;
+        playBackgroundMusicLoop();
+    }
+    
+    function stopMusic() {
+        musicPlaying = false;
+        musicOscillators.forEach(o => { try { o.stop(); } catch(e){} });
+        musicOscillators = [];
+    }
+    
+    function toggleMusic() {
+        const btn = document.getElementById('waMusicBtn') || document.getElementById('gmMusicBtn');
+        if (musicPlaying) {
+            stopMusic();
+            musicEnabled = false;
+        } else {
+            startMusic();
+            musicEnabled = true;
+        }
+        updateMusicBtnUI();
+    }
+    </script>
     <div class="container">
         <div class="card">
             <!-- 首页 -->
@@ -1809,7 +1928,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.29.1';
+        const APP_VERSION = '2026.04.30.1';
 
         let isSupabaseConnected = false;
 
@@ -2622,7 +2741,7 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
         }
-        function showHome() { hideJoinRoom(); stopMusic(); showScreen('homeScreen'); unsubscribeRoom(); loadHomeLeaderboard(); loadVisitCount(); }
+        function showHome() { hideJoinRoom(); stopBgMusic(); showScreen('homeScreen'); unsubscribeRoom(); loadHomeLeaderboard(); loadVisitCount(); }
         function showCreateRoom() {
             showScreen('createRoomScreen');
             updateNicknameInputs();  // 刷新昵称，确保登录状态最新
@@ -2770,31 +2889,20 @@
             });
         }
 
-        // 切换音乐开关
-        function toggleMusic() {
-            musicEnabled = !musicEnabled;
-            updateMusicBtnUI();
-            if (musicEnabled) {
-                document.getElementById('bgMusic').play().catch(() => {
-                    musicEnabled = false;
-                    updateMusicBtnUI();
-                    showToast('音乐播放失败，请检查网络或点击页面后再试');
-                });
-            } else {
-                document.getElementById('bgMusic').pause();
-            }
-        }
-
         // 根据游戏模式/身份自动触发音乐
         function autoStartMusic() {
             if (!musicEnabled) return;
-            document.getElementById('bgMusic').play().catch(() => {});
+            initAudioContext();
+            if (!musicPlaying) {
+                startMusic();
+            }
         }
 
         // 离开游戏界面时停止音乐
-        function stopMusic() {
-            document.getElementById('bgMusic').pause();
-            document.getElementById('bgMusic').currentTime = 0;
+        function stopBgMusic() {
+            if (typeof stopMusic === 'function') {
+                stopMusic();
+            }
         }
 
         function showWaiting() {
@@ -4127,9 +4235,20 @@
             }
 
             if (isSupabaseConnected) {
+                // 同步题目到云端，让其他玩家也能获取
+                let selectedQuestions = state.room.questions;
+                if (selectedQuestions && selectedQuestions.length > 0) {
+                    // 只保留题目核心字段，减小数据量
+                    selectedQuestions = selectedQuestions.map(q => ({
+                        id: q.id, theme: q.theme, difficulty: q.difficulty,
+                        content: q.content, options: q.options, answer: q.answer,
+                        explanation: q.explanation
+                    }));
+                }
                 await supabase.from('rooms').update({ 
                     status: 'playing',
-                    current_question: 0
+                    current_question: 0,
+                    selected_questions: selectedQuestions ? JSON.stringify(selectedQuestions) : null
                 }).eq('id', state.room.id);
             }
 
