@@ -2570,7 +2570,7 @@
                         // 兼容旧房间
                         const themeId = data.theme_id;
                         const local = QUESTIONS.filter(q => q.theme === themeId);
-                        state.room.questions = [...local].sort(() => Math.random() - 0.5).slice(0, settings.questionCount || 10);
+                        state.room.questions = pickRandomQuestions(local, settings.questionCount || 10);
                     }
                     
                     // 获取玩家列表
@@ -2984,15 +2984,14 @@
                     const settings = typeof state.room.settings === 'string' ? JSON.parse(state.room.settings) : (state.room.settings || state.settings);
                     const { data: cloudQs } = await supabase.from('questions').select('*').eq('theme_id', themeId);
                     if (cloudQs && cloudQs.length > 0) {
-                        const shuffled = [...cloudQs].sort(() => Math.random() - 0.5);
-                        state.room.questions = shuffled.slice(0, settings.questionCount || 10).map(q => ({
+                        state.room.questions = pickRandomQuestions(cloudQs, settings.questionCount || 10, q => ({
                             id: q.id, theme: q.theme_id, difficulty: q.difficulty,
                             content: q.content, options: q.options, answer: q.answer,
                             explanation: q.explanation
                         }));
                     } else {
                         const local = QUESTIONS.filter(q => q.theme === themeId);
-                        state.room.questions = [...local].sort(() => Math.random() - 0.5).slice(0, (settings && settings.questionCount) || 10);
+                        state.room.questions = pickRandomQuestions(local, (settings && settings.questionCount) || 10);
                     }
                 }
                 if (!state.room.questions || state.room.questions.length === 0) {
@@ -3572,6 +3571,27 @@
             return null;
         }
 
+        // 随机选题辅助：去重（按 id）+ Fisher-Yates 洗牌 + 取前 count 个
+        function pickRandomQuestions(source, count, mapper) {
+            if (!source || source.length === 0) return [];
+            // 1. 去重
+            const seen = new Set();
+            const unique = [];
+            for (const q of source) {
+                const key = q.id || q.content || JSON.stringify(q);
+                if (!seen.has(key)) { seen.add(key); unique.push(q); }
+            }
+            // 2. Fisher-Yates 洗牌
+            const arr = [...unique];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            // 3. 取前 count 个 + 可选字段映射
+            const picked = arr.slice(0, Math.min(count || arr.length, arr.length));
+            return mapper ? picked.map(mapper) : picked;
+        }
+
         // 轮询兜底：同步房间状态（改为500ms减少延迟）
         function startPolling() {
             stopPolling();
@@ -3724,8 +3744,7 @@
                 const { data: cloudQs } = await supabase.from('questions')
                     .select('*').eq('theme_id', state.settings.theme).eq('difficulty', diffId);
                 if (cloudQs && cloudQs.length > 0) {
-                    const shuffled = [...cloudQs].sort(() => Math.random() - 0.5);
-                    selected = shuffled.slice(0, state.settings.questionCount).map(q => ({
+                    selected = pickRandomQuestions(cloudQs, state.settings.questionCount, q => ({
                         id: q.id, theme: q.theme_id, difficulty: q.difficulty,
                         content: q.content, options: q.options, answer: q.answer,
                         explanation: q.explanation, videoUrl: q.video_url
@@ -3734,7 +3753,7 @@
             }
             if (selected.length === 0) {
                 const local = QUESTIONS.filter(q => q.theme === state.settings.theme && q.difficulty === diffId);
-                selected = [...local].sort(() => Math.random() - 0.5).slice(0, state.settings.questionCount);
+                selected = pickRandomQuestions(local, state.settings.questionCount);
             }
 
             state.room = {
@@ -3878,13 +3897,13 @@
                     // 兼容旧房间：如果没有保存的题目，从本地题库获取
                     const themeId = data.theme_id;
                     const local = QUESTIONS.filter(q => q.theme === themeId);
-                    state.room.questions = [...local].sort(() => Math.random() - 0.5).slice(0, settings.questionCount || 10);
+                    state.room.questions = pickRandomQuestions(local, settings.questionCount || 10);
                 }
             } else {
                 showToast('房间不存在');
                 return;
             }
-
+            
             // 检查是否是这个房间的房主
             const isHost = (data.host_id === state.userId);
             
@@ -4311,15 +4330,14 @@
                 const settings = typeof state.room.settings === 'string' ? JSON.parse(state.room.settings) : state.room.settings;
                 const { data: cloudQs } = isSupabaseConnected ? await supabase.from('questions').select('*').eq('theme_id', themeId) : { data: null };
                 if (cloudQs && cloudQs.length > 0) {
-                    const shuffled = [...cloudQs].sort(() => Math.random() - 0.5);
-                    state.room.questions = shuffled.slice(0, settings.questionCount || 10).map(q => ({
+                    state.room.questions = pickRandomQuestions(cloudQs, settings.questionCount || 10, q => ({
                         id: q.id, theme: q.theme_id, difficulty: q.difficulty,
                         content: q.content, options: q.options, answer: q.answer,
                         explanation: q.explanation, videoUrl: q.video_url
                     }));
                 } else {
                     const local = QUESTIONS.filter(q => q.theme === themeId);
-                    state.room.questions = [...local].sort(() => Math.random() - 0.5).slice(0, settings.questionCount || 10);
+                    state.room.questions = pickRandomQuestions(local, settings.questionCount || 10);
                 }
             }
 
