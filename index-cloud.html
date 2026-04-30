@@ -1928,7 +1928,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.30.2';
+        const APP_VERSION = '2026.04.30.3';
 
         let isSupabaseConnected = false;
 
@@ -2159,11 +2159,17 @@
 
         // 完成注册
         async function completeRegistration() {
-            const phone = localStorage.getItem(VERIFY_PHONE_KEY);
+            const phone = localStorage.getItem(VERIFY_PHONE_KEY)
+                || document.getElementById('loginPhone').value.trim();  // 兜底：从输入框取
             const nickname = document.getElementById('regNickname').value.trim();
 
             if (!nickname) {
                 showToast('请输入昵称');
+                return;
+            }
+
+            if (!phone) {
+                showToast('手机号异常，请重新验证');
                 return;
             }
 
@@ -3347,6 +3353,53 @@
             }
         }
 
+        // 保存所有玩家累计积分到 player_stats 表（排行榜数据源）
+        async function savePlayerStats() {
+            if (!isSupabaseConnected || !state.players || state.players.length === 0) return;
+            const topPlayer = [...state.players].sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+            for (const p of state.players) {
+                const isWinner = (p.score || 0) > 0 && p.id === topPlayer?.id;
+                const correctGuess = state.settings && state.settings.questionCount
+                    ? Math.floor((p.score || 0) / 10) : 0;
+                try {
+                    await supabase.rpc('update_player_stats', {
+                        p_od_id: p.id,
+                        p_nickname: p.nickname,
+                        p_score: p.score || 0,
+                        p_is_winner: !!isWinner,
+                        p_correct: correctGuess,
+                        p_total: state.settings?.questionCount || 0
+                    });
+                } catch(e) {
+                    console.log('[STATS] RPC failed:', e.message);
+                    try {
+                        const { data: existing } = await supabase
+                            .from('player_stats').select('*').eq('od_id', p.id).single();
+                        if (existing) {
+                            await supabase.from('player_stats').update({
+                                nickname: p.nickname,
+                                total_score: existing.total_score + (p.score || 0),
+                                games_played: existing.games_played + 1,
+                                games_won: isWinner ? existing.games_won + 1 : existing.games_won,
+                                max_score: Math.max(existing.max_score, p.score || 0)
+                            }).eq('od_id', p.id);
+                        } else {
+                            await supabase.from('player_stats').insert({
+                                od_id: p.id,
+                                nickname: p.nickname,
+                                total_score: p.score || 0,
+                                games_played: 1,
+                                games_won: isWinner ? 1 : 0,
+                                max_score: p.score || 0
+                            });
+                        }
+                    } catch(e2) {
+                        console.error('[STATS] Fallback failed:', e2.message);
+                    }
+                }
+            }
+        }
+
         // 结束本局：房间回归空闲池，可让其他玩家进入
         async function sdFinishRound() {
             if (!confirm('确定结束本局？房间将回归空闲池，其他玩家可进入继续游戏。')) return;
@@ -3355,8 +3408,10 @@
             state.gameState = 'ended';
             
             if (isSupabaseConnected) {
-                // 保存玩家得分
+                // 保存玩家得分到 room_players
                 await savePlayersToCloud();
+                // 保存累计积分到 player_stats（排行榜）
+                await savePlayerStats();
                 // 房间状态改为 waiting（空闲可加入）
                 await supabase.from('rooms').update({ status: 'waiting' }).eq('id', state.room.id);
             }
@@ -3384,6 +3439,7 @@
             
             if (isSupabaseConnected) {
                 await savePlayersToCloud();
+                await savePlayerStats();  // 同步到排行榜
                 // 房间状态改为 dismissed（解散）
                 await supabase.from('rooms').update({ status: 'dismissed' }).eq('id', state.room.id);
             }
@@ -4037,7 +4093,7 @@
                     if (state.gameState === 'shared_host') sdUpdatePlayerGrid();
                     // 同步等待界面玩家列表
                     if (state.gameState === 'shared_host_wait') sdUpdateWaitingPlayers();
-                    if (state.gameState === 'buzzer') { bzUpdateScore(); bzUpdateLeaderboard(); }
+                    if (state.gameState === 'buzzer') { bzUpdateScore(); bzUpdateLeaderboard(); bzUpdateStatus(); }
                 }
             } catch (e) {
                 console.error('Refresh players error:', e);
@@ -4117,6 +4173,8 @@
 
             // === 共享模式玩家端（抢答器）===
             if (state.gameState === 'buzzer') {
+                // 始终同步 room.status（轮询/实时都可能更新）
+                if (data.status) state.room.status = data.status;
                 if (data.current_question !== undefined && data.current_question !== state.currentQuestion) {
                     state.currentQuestion = data.current_question;
                     state.buzzerLocked = false;
@@ -4127,19 +4185,17 @@
                     showToast(`第 ${state.currentQuestion + 1} 题开始！`);
                 }
                 if (data.buzzer_locked !== undefined) {
-                    const changed = data.buzzer_locked !== state.buzzerLocked
-                        || data.buzzer_player_id !== state.buzzerWinnerId;
-                    state.buzzerLocked = data.buzzer_locked;
                     const prevWinner = state.buzzerWinnerId;
+                    const prevLocked = state.buzzerLocked;
+                    state.buzzerLocked = data.buzzer_locked;
                     state.buzzerWinnerId = data.buzzer_player_id || '';
                     state.buzzerWinnerName = data.buzzer_nickname || '';
                     state.buzzerWinnerTime = data.buzzer_time || 0;
-                    if (changed) {
-                        if (state.buzzerWinnerId === state.userId && prevWinner !== state.userId) {
-                            showToast(`🎉 抢答成功！用时 ${(state.buzzerWinnerTime / 1000).toFixed(2)} 秒`);
-                        }
-                        bzUpdateStatus();
+                    // 始终更新 UI（不依赖 changed 优化，避免边缘情况遗漏）
+                    if (state.buzzerWinnerId === state.userId && prevWinner !== state.userId) {
+                        showToast(`🎉 抢答成功！用时 ${(state.buzzerWinnerTime / 1000).toFixed(2)} 秒`);
                     }
+                    bzUpdateStatus();
                 }
                 if (data.status === 'dismissed') {
                     showToast('房主已退出，房间已解散');
