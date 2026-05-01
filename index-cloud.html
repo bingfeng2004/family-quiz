@@ -4008,17 +4008,47 @@
         // 轮询兜底：实时通道失效时，保证游戏状态同步
         function startPolling() {
             stopPolling();
+            let tickCount = 0;
             state.pollInterval = setInterval(async () => {
                 if (!state.room || !isSupabaseConnected) return;
                 try {
-                    const { data } = await supabase.from('rooms')
+                    // 1. 同步房间状态（每次轮询）
+                    const { data: roomData } = await supabase.from('rooms')
                         .select('*').eq('id', state.room.id).single();
-                    if (data) {
-                        handleRoomUpdate(data);
+                    if (roomData) {
+                        handleRoomUpdate(roomData);
                     }
-                } catch (e) { /* ignore */ }
-            }, 2000);
-            console.log('[DEBUG] polling started');
+                    // 2. 同步玩家列表和分数（每隔一次轮询，即每 1 秒一次，减少请求量）
+                    tickCount++;
+                    if (tickCount % 2 === 0) {
+                        const { data: players } = await supabase.from('room_players')
+                            .select('*').eq('room_id', state.room.id);
+                        if (players) {
+                            const hostId = state.room.hostId || state.room.host_id;
+                            const oldPlayers = state.players;
+                            state.players = players.map(p => ({
+                                id: p.odin,
+                                nickname: p.nickname,
+                                score: p.score || 0,
+                                isHost: p.odin === hostId
+                            }));
+                            // 根据当前模式刷新UI
+                            if (state.gameState === 'buzzer') {
+                                bzUpdateScore();
+                                bzUpdateLeaderboard();
+                                bzUpdateStatus();
+                            } else if (state.gameState === 'shared_host') {
+                                sdUpdatePlayerGrid();
+                            } else if (state.gameState === 'playing') {
+                                updateLeaderboard();
+                            } else if (state.gameState === 'shared_host_wait') {
+                                sdUpdateWaitingPlayers();
+                            }
+                        }
+                    }
+                } catch (e) { /* ignore polling errors */ }
+            }, 500);  // 500ms 间隔，玩家数据每 1 秒同步一次
+            console.log('[DEBUG] polling started (500ms)');
         }
 
         function stopPolling() {
