@@ -3392,7 +3392,7 @@
                     console.log('[STATS] RPC failed:', e.message);
                     try {
                         const { data: existing } = await supabase
-                            .from('player_stats').select('*').eq('od_id', p.id).single();
+                            .from('player_stats').select('*').eq('od_id', p.id).maybeSingle();
                         if (existing) {
                             await supabase.from('player_stats').update({
                                 nickname: p.nickname,
@@ -4632,26 +4632,30 @@
                         });
                     } catch(e) {
                         console.log('[STATS] RPC failed, trying direct upsert:', e.message);
-                        // 降级：直接 upsert
-                        const { data: existing } = await supabase
-                            .from('player_stats').select('*').eq('od_id', p.id).single();
-                        if (existing) {
-                            await supabase.from('player_stats').update({
-                                nickname: p.nickname,
-                                total_score: existing.total_score + p.score,
-                                games_played: existing.games_played + 1,
-                                games_won: isWinner ? existing.games_won + 1 : existing.games_won,
-                                max_score: Math.max(existing.max_score, p.score)
-                            }).eq('od_id', p.id);
-                        } else {
-                            await supabase.from('player_stats').insert({
-                                od_id: p.id,
-                                nickname: p.nickname,
-                                total_score: p.score,
-                                games_played: 1,
-                                games_won: isWinner ? 1 : 0,
-                                max_score: p.score
-                            });
+                        try {
+                            // 降级：直接 upsert
+                            const { data: existing } = await supabase
+                                .from('player_stats').select('*').eq('od_id', p.id).maybeSingle();
+                            if (existing) {
+                                await supabase.from('player_stats').update({
+                                    nickname: p.nickname,
+                                    total_score: existing.total_score + p.score,
+                                    games_played: existing.games_played + 1,
+                                    games_won: isWinner ? existing.games_won + 1 : existing.games_won,
+                                    max_score: Math.max(existing.max_score, p.score)
+                                }).eq('od_id', p.id);
+                            } else {
+                                await supabase.from('player_stats').insert({
+                                    od_id: p.id,
+                                    nickname: p.nickname,
+                                    total_score: p.score,
+                                    games_played: 1,
+                                    games_won: isWinner ? 1 : 0,
+                                    max_score: p.score
+                                });
+                            }
+                        } catch(e2) {
+                            console.error('[STATS] Fallback failed:', e2.message);
                         }
                     }
                 }
