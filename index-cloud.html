@@ -2210,8 +2210,18 @@
                 .single();
 
             if (error) {
-                showToast('注册失败：' + error.message);
+                showToast('注册失败：' + error.message + '（手机号：' + phone + '）');
                 return;
+            }
+
+            if (!newUser) {
+                showToast('注册异常：未返回用户数据');
+                return;
+            }
+
+            // 验证返回数据包含手机号
+            if (isSupabaseConnected && !newUser.phone) {
+                console.warn('[REGISTER] phone saved but not returned:', phone);
             }
 
             // 保存登录状态
