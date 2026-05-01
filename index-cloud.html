@@ -458,7 +458,6 @@
             font-size: 10px;
             font-weight: 600;
         }
-        }
         .sd-room-code {
             font-size: 18px;
             font-weight: 700;
@@ -1928,7 +1927,7 @@
         // 已配置：https://mnptrblqvocfkwntfmof.supabase.co
         const SUPABASE_URL = 'https://mnptrblqvocfkwntfmof.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zFcq1rfWxViECIE8sPyylw_xlWp-TfQ';
-        const APP_VERSION = '2026.04.30.6';
+        const APP_VERSION = '2026.05.01.1';
 
         let isSupabaseConnected = false;
 
@@ -2664,7 +2663,10 @@
         // ==================== 本地广播（同浏览器多标签页） ====================
         function initLocalBroadcast() {
             if (broadcastChannel) return;
-
+            // 早期检测：避免静默失败
+            if (typeof BroadcastChannel === 'undefined') {
+                throw new Error('当前浏览器不支持本地广播模式（BroadcastChannel）');
+            }
             try {
                 broadcastChannel = new BroadcastChannel(LOCAL_CHANNEL_NAME);
                 broadcastChannel.onmessage = (event) => {
@@ -3303,7 +3305,7 @@
         async function sdNextQuestion() {
             // 题目数量检查：最后一题才结束
             if (!state.room.questions || state.currentQuestion >= state.room.questions.length - 1) {
-                sdEndGame();
+                await sdEndGame();
                 return;
             }
             state.currentQuestion++;
@@ -3467,7 +3469,7 @@
 
         // 兼容旧调用
         async function sdEndGame() {
-            sdDismissRoom();
+            await sdDismissRoom();
         }
 
         // ==================== 抢答器屏幕（玩家） ====================
@@ -3607,54 +3609,6 @@
             // 3. 取前 count 个 + 可选字段映射
             const picked = arr.slice(0, Math.min(count || arr.length, arr.length));
             return mapper ? picked.map(mapper) : picked;
-        }
-
-        // 轮询兜底：同步房间状态（改为500ms减少延迟）
-        function startPolling() {
-            stopPolling();
-            state.pollInterval = setInterval(async () => {
-                if (!state.room || !isSupabaseConnected) return;
-                try {
-                    const { data } = await supabase.from('rooms').select('*').eq('id', state.room.id).single();
-                    if (data) {
-                        // 同步题目（对战模式下必须同步）
-                        const sq = parseSelectedQuestions(data.selected_questions);
-                        if (sq && (!state.room.questions || state.room.questions.length === 0)) {
-                            state.room.questions = sq;
-                        }
-                        handleRoomUpdate(data);
-                    }
-                    // 刷新玩家列表
-                    const { data: players } = await supabase.from('room_players').select('*').eq('room_id', state.room.id);
-                    if (players) {
-                        const hostId = state.room.hostId || state.room.host_id;
-                        state.players = players.map(p => ({
-                            id: p.odin,
-                            nickname: p.nickname,
-                            score: p.score || 0,
-                            isHost: p.odin === hostId
-                        }));
-                        // 根据不同模式更新显示
-                        if (state.gameState === 'playing') {
-                            updateLeaderboard();  // 对战模式
-                        }
-                        if (state.gameState === 'buzzer') {
-                            bzUpdateScore();
-                            bzUpdateLeaderboard();
-                        }
-                        if (state.gameState === 'shared_host') {
-                            sdUpdatePlayerGrid();
-                        }
-                    }
-                } catch (e) { /* ignore */ }
-            }, 500);  // 改为500ms减少延迟
-        }
-
-        function stopPolling() {
-            if (state.pollInterval) {
-                clearInterval(state.pollInterval);
-                state.pollInterval = null;
-            }
         }
 
         // ==================== 房间功能 ====================
@@ -4275,11 +4229,11 @@
                 }
                 
                 showGame();
-                loadQuestion();
+                await loadQuestion();
             } else if (state.gameState === 'playing' && data.current_question !== undefined && data.current_question !== state.currentQuestion) {
                 // 对战模式下题目切换同步
                 state.currentQuestion = data.current_question;
-                loadQuestion();
+                await loadQuestion();
             } else if (data.snatched_player_id && data.snatched_player_id !== state.snatchedPlayerId) {
                 state.snatchedPlayerId = data.snatched_player_id;
                 updateSnatchStatus();
@@ -4304,10 +4258,15 @@
         }
 
         function unsubscribeRoom() {
-            if (state.realtimeChannel) {
-                supabase.removeChannel(state.realtimeChannel);
-                state.realtimeChannel = null;
+            // 安全清理：try-catch 防止异常路径下内存泄漏
+            try {
+                if (state.realtimeChannel) {
+                    supabase.removeChannel(state.realtimeChannel);
+                }
+            } catch (e) {
+                console.log('[CHANNEL] removeChannel error:', e);
             }
+            state.realtimeChannel = null;
             stopPolling();
         }
 
@@ -4384,16 +4343,16 @@
             }
 
             showGame();
-            loadQuestion();
+            await loadQuestion();
         }
 
         // ==================== 游戏功能 ====================
         // 对象池：复用预创建的4个选项DOM节点，仅更新内容
         const OPT_KEYS = ['A', 'B', 'C', 'D'];
 
-        function loadQuestion() {
+        async function loadQuestion() {
             if (state.currentQuestion >= state.room.questions.length) {
-                endGame();
+                await endGame();
                 return;
             }
 
@@ -4542,6 +4501,7 @@
         }
 
         async function submitAnswer() {
+            if (state.isSpectator) { showToast('👁️ 旁观者不能作答'); return; }
             if (!state.selectedAnswer) return;
 
             stopTimer();
@@ -4618,7 +4578,7 @@
                 }).eq('id', state.room.id);
             }
 
-            loadQuestion();
+            await loadQuestion();
         }
 
         function updateLeaderboard() {
