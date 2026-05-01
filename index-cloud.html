@@ -3018,6 +3018,12 @@
                     return;
                 }
             }
+            // 开始新游戏前清理残留的玩家记录
+            if (isSupabaseConnected) {
+                supabase.from('room_players').delete().eq('room_id', state.room.id).then(() => {
+                    console.log('[CLEANUP] room_players cleaned for', state.room.id);
+                }).catch(e => {/* 忽略清理错误 */});
+            }
             // 重置游戏状态
             state.currentQuestion = 0;
             state.questionScored = false;
@@ -4114,6 +4120,7 @@
                     // 同步等待界面玩家列表
                     if (state.gameState === 'shared_host_wait') sdUpdateWaitingPlayers();
                     if (state.gameState === 'buzzer') { bzUpdateScore(); bzUpdateLeaderboard(); bzUpdateStatus(); }
+                    if (state.gameState === 'playing') { updateLeaderboard(); }
                 }
             } catch (e) {
                 console.error('Refresh players error:', e);
@@ -4329,6 +4336,12 @@
             state.room.status = 'playing';
             state.currentQuestion = 0;
             state.gameState = 'playing';
+            // 开始新游戏前清理残留的玩家记录
+            if (isSupabaseConnected) {
+                supabase.from('room_players').delete().eq('room_id', state.room.id).then(() => {
+                    console.log('[CLEANUP] room_players cleaned for', state.room.id);
+                }).catch(e => {/* 忽略清理错误 */});
+            }
 
             // 从云端加载题目（如果本地没有）
             if (!state.room.questions || state.room.questions.length === 0) {
