@@ -1,12 +1,15 @@
 -- =====================================================
 -- 家庭竞答应用 - 数据库初始化 & 字段扩展
 -- Supabase SQL Editor 中执行
--- 版本：2026.04.28
+-- 版本：2026.05.01
 -- =====================================================
 
 -- ---------------------------------------------------
--- 1. users 表扩展：登录计数 + 最后登录时间
+-- 1. users 表扩展：手机号 + 登录计数
 -- ---------------------------------------------------
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20) UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS registered_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE users ADD COLUMN IF NOT EXISTS login_count INTEGER DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ DEFAULT NOW();
 COMMENT ON COLUMN users.login_count IS '用户登录次数';
