@@ -2477,9 +2477,18 @@
                 }
             });
 
-            // 页面关闭/刷新
+            // 页面关闭/刷新：清理当前玩家的 room_players 记录
             window.addEventListener('beforeunload', () => {
                 hostLeaveCleanup();
+                // 非房主玩家退出时清理自己的 room_players 记录
+                if (state.room && state.userId && isSupabaseConnected) {
+                    const isHost = state.room.hostId === state.userId || state.room.host_id === state.userId;
+                    if (!isHost) {
+                        supabase.from('room_players').delete()
+                            .eq('room_id', state.room.id).eq('odin', state.userId)
+                            .then(() => {});
+                    }
+                }
             });
         }
 
@@ -4015,7 +4024,13 @@
         function startPolling() {
             stopPolling();
             let tickCount = 0;
-            state.pollInterval = setInterval(async () => {
+            // 动态间隔：等待阶段2s，游戏进行中500ms，结束停止
+            const getInterval = () => {
+                if (state.gameState === 'shared_host_wait' || state.gameState === 'waiting') return 2000;
+                if (state.gameState === 'ended' || state.gameState === 'finished') return 0; // 停止
+                return 500;
+            };
+            const pollTick = async () => {
                 if (!state.room || !isSupabaseConnected) return;
                 try {
                     // 1. 同步房间状态（每次轮询）
@@ -4024,25 +4039,24 @@
                     if (roomData) {
                         handleRoomUpdate(roomData);
                     }
-                    // 2. 同步玩家列表和分数（每隔一次轮询，即每 1 秒一次，减少请求量）
-                    tickCount++;
-                    if (tickCount % 2 === 0) {
-                        const { data: players } = await supabase.from('room_players')
-                            .select('*').eq('room_id', state.room.id);
-                        if (players) {
-                            const hostId = state.room.hostId || state.room.host_id;
-                            const oldPlayers = state.players;
-                            state.players = players.map(p => ({
-                                id: p.odin,
-                                nickname: p.nickname,
-                                score: p.score || 0,
-                                isHost: p.odin === hostId
-                            }));
-                            // 根据当前模式刷新UI
+                    // 2. 同步玩家列表和分数（带 diff 检查）
+                    const { data: players } = await supabase.from('room_players')
+                        .select('*').eq('room_id', state.room.id);
+                    if (players) {
+                        const hostId = state.room.hostId || state.room.host_id;
+                        const newPlayers = players.map(p => ({
+                            id: p.odin,
+                            nickname: p.nickname,
+                            score: p.score || 0,
+                            isHost: p.odin === hostId
+                        }));
+                        // JSON diff：只有变化才刷新 UI
+                        const oldJson = JSON.stringify(state.players);
+                        const newJson = JSON.stringify(newPlayers);
+                        if (oldJson !== newJson) {
+                            state.players = newPlayers;
                             if (state.gameState === 'buzzer') {
-                                bzUpdateScore();
-                                bzUpdateLeaderboard();
-                                bzUpdateStatus();
+                                bzUpdateScore(); bzUpdateLeaderboard(); bzUpdateStatus();
                             } else if (state.gameState === 'shared_host') {
                                 sdUpdatePlayerGrid();
                             } else if (state.gameState === 'playing') {
@@ -4053,15 +4067,23 @@
                         }
                     }
                 } catch (e) { /* ignore polling errors */ }
-            }, 500);  // 500ms 间隔，玩家数据每 1 秒同步一次
-            console.log('[DEBUG] polling started (500ms)');
+                // 动态调整下次轮询间隔
+                const next = getInterval();
+                if (next === 0) { stopPolling(); return; }
+                state.pollTimer = setTimeout(pollTick, next);
+            };
+            state.pollTimer = setTimeout(pollTick, getInterval());
+            console.log('[DEBUG] polling started (dynamic)');
         }
 
         function stopPolling() {
             if (state.pollInterval) {
                 clearInterval(state.pollInterval);
                 state.pollInterval = null;
-                console.log('[DEBUG] polling stopped');
+            }
+            if (state.pollTimer) {
+                clearTimeout(state.pollTimer);
+                state.pollTimer = null;
             }
         }
 
@@ -4106,13 +4128,18 @@
                 const { data } = await supabase.from('room_players').select('*').eq('room_id', state.room.id);
                 if (data) {
                     const hostId = state.room.hostId || state.room.host_id;
-                    // 从云端同步所有玩家
-                    state.players = data.map(p => ({
+                    // 计算新玩家数据，并与当前 state 做 diff
+                    const newPlayers = data.map(p => ({
                         id: p.odin,
                         nickname: p.nickname,
                         score: p.score || 0,
                         isHost: p.odin === hostId
                     }));
+                    // JSON diff：只有真正发生变化才刷新 UI
+                    const oldJson = JSON.stringify(state.players);
+                    const newJson = JSON.stringify(newPlayers);
+                    if (oldJson === newJson) return;  // 无变化，跳过 UI 刷新
+                    state.players = newPlayers;
                     updatePlayerList();
                     updateLeaderboard();
                     // 同步共享大屏玩家网格
@@ -4394,6 +4421,10 @@
         const OPT_KEYS = ['A', 'B', 'C', 'D'];
 
         async function loadQuestion() {
+            // 防重入：同一题目不重复加载
+            if (state._loadingQuestion) return;
+            state._loadingQuestion = true;
+            try {
             if (state.currentQuestion >= state.room.questions.length) {
                 await endGame();
                 return;
@@ -4442,6 +4473,7 @@
 
             updateLeaderboard();
             startTimer();
+            } finally { state._loadingQuestion = false; }
         }
 
         // RAF 统一计时器：基于时间戳，精度高于 setInterval，且与屏幕刷新率同步
@@ -4756,12 +4788,18 @@
             state.gameState = 'shared_host_wait';
             // 重置玩家分数
             state.players.forEach(p => p.score = 0);
-            // 更新云端
+            // 清理云端旧玩家记录（只保留当前在线玩家）
+            await supabase.from('room_players').delete().eq('room_id', state.room.id);
+            // 重新插入当前玩家（分数已归零）
+            await savePlayersToCloud();
+            // 更新云端房间状态
             await supabase.from('rooms').update({
                 status: 'waiting',
-                current_question: 0
+                current_question: 0,
+                buzzer_locked: false,
+                buzzer_player_id: '',
+                buzzer_nickname: ''
             }).eq('id', state.room.id);
-            await savePlayersToCloud();
             showSharedHostWait();
             showToast('房间已重置，可以开始新一轮游戏！');
         }
