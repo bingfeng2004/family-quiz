@@ -4802,9 +4802,10 @@
         // 再来一局：房主重置房间状态，等待下一轮游戏
         async function playAgain() {
             if (!state.room || !isSupabaseConnected) return;
+            const isShared = state.gameMode === 'shared';
             state.room.status = 'waiting';
             state.currentQuestion = 0;
-            state.gameState = 'shared_host_wait';
+            state.gameState = isShared ? 'shared_host_wait' : 'waiting';
             // 重置玩家分数
             state.players.forEach(p => p.score = 0);
             // 清理云端旧玩家记录（只保留当前在线玩家）
@@ -4819,7 +4820,12 @@
                 buzzer_player_id: '',
                 buzzer_nickname: ''
             }).eq('id', state.room.id);
-            showSharedHostWait();
+            // 根据模式跳转到对应的等待界面
+            if (isShared) {
+                showSharedHostWait();
+            } else {
+                showWaiting();
+            }
             showToast('房间已重置，可以开始新一轮游戏！');
         }
 
