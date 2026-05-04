@@ -2961,11 +2961,7 @@
             document.getElementById('displayRoomCode').textContent = state.room.id;
             updatePlayerList();
             subscribeRoom();
-            // 对战模式默认开启音乐（共享模式由房主自行开关）
-            if (state.gameMode === 'versus') {
-                if (!musicEnabled) { musicEnabled = true; updateMusicBtnUI(); }
-                autoStartMusic();
-            }
+            // 音乐保持用户上次设置，不自动开启
             console.log('[DEBUG] showWaiting done');
         }
 
@@ -2983,9 +2979,7 @@
             showScreen('sharedHostWaitScreen');
             state.gameState = 'shared_host_wait';
             subscribeRoom();
-            // 共享模式房主默认开启音乐
-            if (!musicEnabled) { musicEnabled = true; updateMusicBtnUI(); }
-            autoStartMusic();
+            // 音乐保持用户上次设置
             // 更新等待界面信息
             document.getElementById('sdRoomCode2').textContent = state.room.id || '------';
             document.getElementById('sdJoinCode').textContent = state.room.id || '------';
